@@ -32,6 +32,7 @@ import org.cloudburstmc.protocol.bedrock.codec.BedrockPacketSerializer;
 import org.cloudburstmc.protocol.bedrock.codec.v1001.serializer.BossEventSerializer_v1001;
 import org.cloudburstmc.protocol.bedrock.codec.v1001.serializer.InventoryContentSerializer_v1001;
 import org.cloudburstmc.protocol.bedrock.codec.v1001.serializer.MobArmorEquipmentSerializer_v1001;
+import org.cloudburstmc.protocol.bedrock.codec.v2168.serializer.PlayerSkinSerializer_v2168;
 import org.cloudburstmc.protocol.bedrock.codec.v291.serializer.MobArmorEquipmentSerializer_v291;
 import org.cloudburstmc.protocol.bedrock.codec.v291.serializer.MobEquipmentSerializer_v291;
 import org.cloudburstmc.protocol.bedrock.codec.v291.serializer.MoveEntityAbsoluteSerializer_v291;
@@ -276,7 +277,13 @@ class CodecProcessor {
     /**
      * Serializer that does nothing when trying to deserialize PlayerSkinPacket since it is not used from the client.
      */
-    private static final BedrockPacketSerializer<PlayerSkinPacket> PLAYER_SKIN_SERIALIZER = new PlayerSkinSerializer_v390() {
+    private static final BedrockPacketSerializer<PlayerSkinPacket> PLAYER_SKIN_SERIALIZER_V390 = new PlayerSkinSerializer_v390() {
+        @Override
+        public void deserialize(ByteBuf buffer, BedrockCodecHelper helper, PlayerSkinPacket packet) {
+        }
+    };
+
+    private static final BedrockPacketSerializer<PlayerSkinPacket> PLAYER_SKIN_SERIALIZER_V2168 = new PlayerSkinSerializer_v2168() {
         @Override
         public void deserialize(ByteBuf buffer, BedrockCodecHelper helper, PlayerSkinPacket packet) {
         }
@@ -382,7 +389,6 @@ class CodecProcessor {
         updateSerializerIfPresent(codecBuilder, EmoteListPacket.class, IGNORED_SERIALIZER);
         // Ignored only when serverbound (MovePlayer kept as stock codec — legacy 1.20.x still sends it)
         updateSerializerIfPresent(codecBuilder, PlayerHotbarPacket.class, PLAYER_HOTBAR_SERIALIZER);
-        updateSerializerIfPresent(codecBuilder, PlayerSkinPacket.class, PLAYER_SKIN_SERIALIZER);
         updateSerializerIfPresent(codecBuilder, SetEntityDataPacket.class, SET_ENTITY_DATA_SERIALIZER);
         // 1.20.70 (662) added a tick field to SetEntityMotion; older clients must keep v291 wire format.
         if (codec.getProtocolVersion() < 662) {
@@ -444,6 +450,13 @@ class CodecProcessor {
         } else {
             updateSerializerIfPresent(codecBuilder, MobArmorEquipmentPacket.class, MOB_ARMOR_EQUIPMENT_SERIALIZER_V1001);
             updateSerializerIfPresent(codecBuilder, BossEventPacket.class, BOSS_EVENT_SERIALIZER_V1001);
+        }
+
+        // PlayerSkin wire format changed in 26.40; do not ban MovePlayer (legacy clients still send it).
+        if (codec.getProtocolVersion() < 2168) { // 26.40
+            updateSerializerIfPresent(codecBuilder, PlayerSkinPacket.class, PLAYER_SKIN_SERIALIZER_V390);
+        } else {
+            updateSerializerIfPresent(codecBuilder, PlayerSkinPacket.class, PLAYER_SKIN_SERIALIZER_V2168);
         }
 
         return codecBuilder.build();

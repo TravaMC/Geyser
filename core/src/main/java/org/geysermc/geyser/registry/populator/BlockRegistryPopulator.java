@@ -44,6 +44,7 @@ import org.cloudburstmc.nbt.NbtMapBuilder;
 import org.cloudburstmc.nbt.NbtType;
 import org.cloudburstmc.nbt.NbtUtils;
 import org.cloudburstmc.protocol.bedrock.codec.v1001.Bedrock_v1001;
+import org.cloudburstmc.protocol.bedrock.codec.v2168.Bedrock_v2168;
 import org.cloudburstmc.protocol.bedrock.codec.v589.Bedrock_v589;
 import org.cloudburstmc.protocol.bedrock.codec.v594.Bedrock_v594;
 import org.cloudburstmc.protocol.bedrock.codec.v618.Bedrock_v618;
@@ -176,6 +177,7 @@ public final class BlockRegistryPopulator {
                 .put(ObjectIntPair.of("26_10", Bedrock_v944.CODEC.getProtocolVersion()), ChaosCubedConverter::convertBlock)
                 .put(ObjectIntPair.of("26_20", Bedrock_v975.CODEC.getProtocolVersion()), ChaosCubedConverter::convertBlock)
                 .put(ObjectIntPair.of("26_30", Bedrock_v1001.CODEC.getProtocolVersion()), tag -> tag)
+                .put(ObjectIntPair.of("26_40", Bedrock_v2168.CODEC.getProtocolVersion()), tag -> tag)
             .build();
 
         // We can keep this strong as nothing should be garbage collected

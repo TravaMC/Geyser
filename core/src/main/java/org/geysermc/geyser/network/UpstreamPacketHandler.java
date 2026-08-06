@@ -238,8 +238,8 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
 
         resourcePacksInfo.setForcedToAccept(GeyserImpl.getInstance().config().gameplay().forceResourcePacks() ||
             resourcePackLoadEvent.isIntegratedPackActive());
-        resourcePacksInfo.setWorldTemplateId(UUID.randomUUID());
-        resourcePacksInfo.setWorldTemplateVersion("*");
+        resourcePacksInfo.setWorldTemplateId(new UUID(0, 0));
+        resourcePacksInfo.setWorldTemplateVersion("");
 
         session.sendUpstreamPacket(resourcePacksInfo);
 
@@ -282,7 +282,7 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
                 ResourcePackStackPacket stackPacket = new ResourcePackStackPacket();
                 stackPacket.setExperimentsPreviouslyToggled(false);
                 stackPacket.setForcedToAccept(false); // Leaving this as false allows the player to choose to download or not
-                stackPacket.setGameVersion(session.getClientData().getGameVersion());
+                stackPacket.setGameVersion("*");
                 stackPacket.getResourcePacks().addAll(this.resourcePackLoadEvent.orderedPacks());
 
                 // Do not enable experimental_graphics on pre-1.21.90 — hung 1.21.70/80 join.
