@@ -90,7 +90,7 @@ public class BoatEntity extends Entity implements Tickable, Leashable, ClientVeh
 
         // Required to be able to move on land 1.16.200+ or apply gravity not in the water 1.16.100+
         metadata.put(EntityDataTypes.IS_BUOYANT, true);
-        metadata.put(EntityDataTypes.BUOYANCY_DATA, BUOYANCY_DATA);;
+        metadata.put(EntityDataTypes.BUOYANCY_DATA, BUOYANCY_DATA);
     }
 
     @Override

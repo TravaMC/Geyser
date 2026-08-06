@@ -58,6 +58,7 @@ import org.cloudburstmc.protocol.bedrock.codec.v898.Bedrock_v898;
 import org.cloudburstmc.protocol.bedrock.codec.v924.Bedrock_v924;
 import org.cloudburstmc.protocol.bedrock.codec.v944.Bedrock_v944;
 import org.cloudburstmc.protocol.bedrock.codec.v975.Bedrock_v975;
+import org.cloudburstmc.protocol.bedrock.data.entity.EntityFlag;
 import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec;
 import org.geysermc.geyser.api.util.MinecraftVersion;
 import org.geysermc.geyser.impl.MinecraftVersionImpl;
@@ -261,6 +262,32 @@ public final class GameProtocol {
 
     public static boolean is26_40orHigher(int protocolVersion) {
         return protocolVersion >= Bedrock_v2168.CODEC.getProtocolVersion();
+    }
+
+    /**
+     * Whether {@code flag} exists in the client's protocol EntityFlag TypeMap.
+     * <p>
+     * Cloudburst's {@code FlagTransformer} calls {@code TypeMap.getId}, which throws when a flag
+     * is unknown to that codec. Sending such a flag (e.g. {@code COLLIDABLE} before 1.21.70)
+     * aborts AddEntity/SetEntityData encoding — boats/shulkers/spiders appear missing on 1.20.x.
+     */
+    public static boolean isEntityFlagSupported(EntityFlag flag, int protocolVersion) {
+        return switch (flag) {
+            case CRAWLING -> protocolVersion >= Bedrock_v594.CODEC.getProtocolVersion();
+            case TIMER_FLAG_1, TIMER_FLAG_2, TIMER_FLAG_3 -> protocolVersion >= Bedrock_v622.CODEC.getProtocolVersion();
+            case BODY_ROTATION_BLOCKED -> protocolVersion >= Bedrock_v671.CODEC.getProtocolVersion();
+            case RENDER_WHEN_INVISIBLE -> protocolVersion >= Bedrock_v776.CODEC.getProtocolVersion();
+            case BODY_ROTATION_AXIS_ALIGNED, COLLIDABLE, WASD_AIR_CONTROLLED ->
+                protocolVersion >= Bedrock_v786.CODEC.getProtocolVersion();
+            case DOES_SERVER_AUTH_ONLY_DISMOUNT -> protocolVersion >= Bedrock_v800.CODEC.getProtocolVersion();
+            case BODY_ROTATION_ALWAYS_FOLLOWS_HEAD -> protocolVersion >= Bedrock_v818.CODEC.getProtocolVersion();
+            // EntityFlag annotates @since v843; Trava codecs jump 827 → 844
+            case CAN_USE_VERTICAL_MOVEMENT_ACTION -> protocolVersion >= Bedrock_v844.CODEC.getProtocolVersion();
+            case BODY_ROTATION_LOCKED_TO_VEHICLE -> protocolVersion >= Bedrock_v859.CODEC.getProtocolVersion();
+            case USES_LEGACY_FRICTION, USES_UNIFORM_AIR_DRAG, NAMEPLATE_DEPTH_TESTED ->
+                protocolVersion >= Bedrock_v975.CODEC.getProtocolVersion();
+            default -> true;
+        };
     }
 
     /**

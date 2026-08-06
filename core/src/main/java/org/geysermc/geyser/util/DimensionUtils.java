@@ -70,10 +70,14 @@ public class DimensionUtils {
 
         Set<Effect> entityEffects = session.getEffectCache().getEntityEffects();
         for (Effect effect : entityEffects) {
+            EffectType effectType = EffectType.fromJavaEffect(effect);
+            if (!effectType.isSupportedOn(session.protocolVersion())) {
+                continue;
+            }
             MobEffectPacket mobEffectPacket = new MobEffectPacket();
             mobEffectPacket.setEvent(MobEffectPacket.Event.REMOVE);
             mobEffectPacket.setRuntimeEntityId(player.geyserId());
-            mobEffectPacket.setEffectId(EffectType.fromJavaEffect(effect).getBedrockId());
+            mobEffectPacket.setEffectId(effectType.getBedrockId());
             session.sendUpstreamPacket(mobEffectPacket);
         }
         // Effects are re-sent from server

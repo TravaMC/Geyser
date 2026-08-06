@@ -463,8 +463,16 @@ public class BlockBreakHandler {
             } else if (bedrockDestroyed) {
                 // Client finished its break circle early — put the block back, but keep dig progress
                 // so we can FINISH_DIGGING when Java dig time is actually met.
-                BlockUtils.restoreCorrectBlock(session, position, state);
+                // Do not refresh the held hotbar slot: that cancels Bedrock first-person dig arm animation.
+                BlockUtils.restoreCorrectBlockKeepHand(session, position, state);
                 this.ignoreAbortUntilTick = tick + 3;
+
+                // Re-assert dig start so the client resumes mining hand animation after the predict restore.
+                LevelEventPacket restartBreak = new LevelEventPacket();
+                restartBreak.setType(LevelEvent.BLOCK_START_BREAK);
+                restartBreak.setPosition(position.toFloat());
+                restartBreak.setData((int) (65535 / totalBreakTime));
+                session.sendUpstreamPacket(restartBreak);
             }
 
             // Update the break time in the event that player conditions changed (jumping, effects applied)

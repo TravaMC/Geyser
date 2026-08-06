@@ -59,6 +59,7 @@ public class ShulkerEntity extends GolemEntity {
 
         // This is vanilla behaviour yes (BDS does this), without this as of 1.21.93 entity became fully invisible.
         // Doing this allow the invisible parity support inside GeyserOptionalPack to works again.
+        // RENDER_WHEN_INVISIBLE / COLLIDABLE only exist from 1.21.60 / 1.21.70 — stripped for older codecs in Entity.clientFlags.
         setFlag(EntityFlag.RENDER_WHEN_INVISIBLE, true);
     }
 

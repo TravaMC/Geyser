@@ -50,10 +50,15 @@ public class JavaRemoveMobEffectTranslator extends PacketTranslator<ClientboundR
             clientVehicle.getVehicleComponent().removeEffect(packet.getEffect());
         }
 
+        EffectType effectType = EffectType.fromJavaEffect(packet.getEffect());
+        if (!effectType.isSupportedOn(session.protocolVersion())) {
+            return;
+        }
+
         MobEffectPacket mobEffectPacket = new MobEffectPacket();
         mobEffectPacket.setEvent(MobEffectPacket.Event.REMOVE);
         mobEffectPacket.setRuntimeEntityId(entity.geyserId());
-        mobEffectPacket.setEffectId(EffectType.fromJavaEffect(packet.getEffect()).getBedrockId());
+        mobEffectPacket.setEffectId(effectType.getBedrockId());
         session.sendUpstreamPacket(mobEffectPacket);
     }
 }

@@ -238,14 +238,27 @@ public final class BlockUtils {
     }
 
     public static void restoreCorrectBlock(GeyserSession session, Vector3i vector, BlockState blockState) {
-        restoreCorrectBlockAndItem(session, vector, blockState, session.getPlayerInventory().getHeldItemSlot());
+        restoreCorrectBlockAndItem(session, vector, blockState, session.getPlayerInventory().getHeldItemSlot(), true);
     }
 
     public static void restoreCorrectBlock(GeyserSession session, Vector3i blockPos, int slot) {
-        restoreCorrectBlockAndItem(session, blockPos, session.getGeyser().getWorldManager().blockAt(session, blockPos), slot);
+        restoreCorrectBlockAndItem(session, blockPos, session.getGeyser().getWorldManager().blockAt(session, blockPos), slot, true);
+    }
+
+    /**
+     * Restore a block the Bedrock client already removed, without refreshing the held hotbar slot.
+     * Mid-dig {@code updateSlot} cancels first-person mining arm animation on several Bedrock builds
+     * (reproduced on 1.21.40/41 while the break circle / early predict restores the block).
+     */
+    public static void restoreCorrectBlockKeepHand(GeyserSession session, Vector3i vector, BlockState blockState) {
+        restoreCorrectBlockAndItem(session, vector, blockState, session.getPlayerInventory().getHeldItemSlot(), false);
     }
 
     public static void restoreCorrectBlockAndItem(GeyserSession session, Vector3i vector, BlockState blockState, int slot) {
+        restoreCorrectBlockAndItem(session, vector, blockState, slot, true);
+    }
+
+    public static void restoreCorrectBlockAndItem(GeyserSession session, Vector3i vector, BlockState blockState, int slot, boolean refreshHeldItem) {
         BlockDefinition bedrockBlock = session.getBlockMappings().getBedrockBlock(blockState);
 
         if (blockState.block() instanceof SkullBlock skullBlock && skullBlock.skullType() == SkullBlock.Type.PLAYER) {
@@ -270,8 +283,10 @@ public final class BlockUtils {
         updateWaterPacket.getFlags().addAll(UpdateBlockPacket.FLAG_ALL_PRIORITY);
         session.sendUpstreamPacket(updateWaterPacket);
 
-        // Reset the item in hand to prevent "missing" blocks
-        session.getPlayerInventoryHolder().updateSlot(session.getPlayerInventory().getOffsetForHotbar(slot));
+        if (refreshHeldItem) {
+            // Reset the item in hand to prevent "missing" blocks after a full client-side break
+            session.getPlayerInventoryHolder().updateSlot(session.getPlayerInventory().getOffsetForHotbar(slot));
+        }
     }
 
     public static void stopBreakAndRestoreBlock(GeyserSession session, Vector3i vector, BlockState blockState) {

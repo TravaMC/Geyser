@@ -295,6 +295,11 @@ public class LivingEntity extends Entity implements Tickable {
                 continue;
             }
 
+            // Same as MobEffectPacket: unknown IDs crash legacy clients when packed into VISIBLE_MOB_EFFECTS
+            if (!effectType.isSupportedOn(session.protocolVersion())) {
+                continue;
+            }
+
             int bedrockEffectId = effectType.getBedrockId();
             int ambient = 0; // We don't get this passed from java so assume false. BDS does the same.
             int effectBits = (bedrockEffectId & 0x3F) << 1 | ambient;

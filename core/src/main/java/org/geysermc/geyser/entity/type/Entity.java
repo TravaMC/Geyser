@@ -64,6 +64,7 @@ import org.geysermc.geyser.entity.EntityDataBehaviorRegistry;
 import org.geysermc.geyser.item.Items;
 import org.geysermc.geyser.item.type.Item;
 import org.geysermc.geyser.level.physics.BoundingBox;
+import org.geysermc.geyser.network.GameProtocol;
 import org.geysermc.geyser.scoreboard.Team;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.translator.text.MessageTranslator;
@@ -235,8 +236,9 @@ public class Entity implements GeyserEntity {
         addEntityPacket.setRotation(Vector2f.from(pitch, yaw));
         addEntityPacket.setHeadRotation(headYaw);
         addEntityPacket.setBodyRotation(yaw); // TODO: This should be bodyYaw
-        addEntityPacket.getMetadata().putFlags(flags);
         metadata.apply(addEntityPacket.getMetadata());
+        // Flags after metadata.apply — putAll must not overwrite filtered flags
+        addEntityPacket.getMetadata().putFlags(clientFlags(flags));
         if (propertyManager != null) {
             propertyManager.discardUnsupportedProperties(session.protocolVersion());
             propertyManager.applyIntProperties(addEntityPacket.getProperties().getIntProperties());
@@ -448,16 +450,16 @@ public class Entity implements GeyserEntity {
         if (metadata.hasEntries() || flagsDirty || (propertyManager != null && propertyManager.hasProperties())) {
             SetEntityDataPacket entityDataPacket = new SetEntityDataPacket();
             entityDataPacket.setRuntimeEntityId(geyserId);
+            metadata.apply(entityDataPacket.getMetadata());
             if (flagsDirty) {
                 // Re-assert the first-person hide; a server flags-byte refresh would otherwise un-hide the target
                 if (session.getSpectatedEntity() == this && session.getSpectateMode() == EntitySpectateHelper.SpectateMode.FIRST_PERSON) {
-                    entityDataPacket.getMetadata().putFlags(spectateHiddenFlags());
+                    entityDataPacket.getMetadata().putFlags(clientFlags(spectateHiddenFlags()));
                 } else {
-                    entityDataPacket.getMetadata().putFlags(flags);
+                    entityDataPacket.getMetadata().putFlags(clientFlags(flags));
                 }
                 flagsDirty = false;
             }
-            metadata.apply(entityDataPacket.getMetadata());
             if (propertyManager != null && propertyManager.hasProperties()) {
                 propertyManager.discardUnsupportedProperties(session.protocolVersion());
                 if (propertyManager.hasProperties()) {
@@ -476,7 +478,7 @@ public class Entity implements GeyserEntity {
         }
         SetEntityDataPacket packet = new SetEntityDataPacket();
         packet.setRuntimeEntityId(geyserId);
-        packet.getMetadata().putFlags(hidden ? spectateHiddenFlags() : flags);
+        packet.getMetadata().putFlags(clientFlags(hidden ? spectateHiddenFlags() : flags));
         session.sendUpstreamPacket(packet);
     }
 
@@ -484,6 +486,24 @@ public class Entity implements GeyserEntity {
         EnumMap<EntityFlag, Boolean> overridden = new EnumMap<>(flags);
         overridden.put(EntityFlag.INVISIBLE, true);
         return overridden;
+    }
+
+    /**
+     * Strip entity flags unknown to this client's protocol before encoding.
+     * Keeps local {@link #flags} intact for Geyser-side logic (e.g. world border collision).
+     */
+    protected EnumMap<EntityFlag, Boolean> clientFlags(EnumMap<EntityFlag, Boolean> source) {
+        int protocol = session.protocolVersion();
+        EnumMap<EntityFlag, Boolean> filtered = null;
+        for (EntityFlag flag : source.keySet()) {
+            if (!GameProtocol.isEntityFlagSupported(flag, protocol)) {
+                if (filtered == null) {
+                    filtered = new EnumMap<>(source);
+                }
+                filtered.remove(flag);
+            }
+        }
+        return filtered != null ? filtered : source;
     }
 
     /**

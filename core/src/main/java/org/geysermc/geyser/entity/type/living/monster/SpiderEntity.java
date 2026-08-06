@@ -27,6 +27,7 @@ package org.geysermc.geyser.entity.type.living.monster;
 
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityFlag;
 import org.geysermc.geyser.entity.spawn.EntitySpawnContext;
+import org.geysermc.geyser.network.GameProtocol;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.type.ByteEntityMetadata;
 
 import java.util.EnumMap;
@@ -40,7 +41,10 @@ public class SpiderEntity extends MonsterEntity {
     @Override
     protected void initializeMetadata() {
         super.initializeMetadata();
-        // Allow red eyes to show when invisible
+        // Allow red eyes to show when invisible (Bedrock 1.21.60+ / protocol 776)
+        if (GameProtocol.isPreCreativeInventoryRewrite(session.protocolVersion())) {
+            return;
+        }
         setFlag(EntityFlag.RENDER_WHEN_INVISIBLE, true);
     }
 

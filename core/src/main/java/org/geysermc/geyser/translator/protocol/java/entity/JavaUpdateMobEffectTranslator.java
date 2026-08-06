@@ -64,6 +64,12 @@ public class JavaUpdateMobEffectTranslator extends PacketTranslator<ClientboundU
             clientVehicle.getVehicleComponent().setEffect(packet.getEffect(), packet.getAmplifier());
         }
 
+        EffectType effectType = EffectType.fromJavaEffect(packet.getEffect());
+        // Unknown / newer-than-client effect IDs crash legacy Bedrock (e.g. trial omen on 1.20.x).
+        if (!effectType.isSupportedOn(session.protocolVersion())) {
+            return;
+        }
+
         MobEffectPacket mobEffectPacket = new MobEffectPacket();
         mobEffectPacket.setAmplifier(packet.getAmplifier());
         mobEffectPacket.setDuration(packet.getDuration());
@@ -71,7 +77,7 @@ public class JavaUpdateMobEffectTranslator extends PacketTranslator<ClientboundU
         mobEffectPacket.setRuntimeEntityId(entity.geyserId());
         mobEffectPacket.setParticles(packet.isShowParticles());
         mobEffectPacket.setAmbient(packet.isAmbient());
-        mobEffectPacket.setEffectId(EffectType.fromJavaEffect(packet.getEffect()).getBedrockId());
+        mobEffectPacket.setEffectId(effectType.getBedrockId());
         session.sendUpstreamPacket(mobEffectPacket);
 
         // Bedrock expects some attributes to be updated in the same tick as the effect causing them
