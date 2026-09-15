@@ -47,6 +47,7 @@ import org.cloudburstmc.nbt.NbtMapBuilder;
 import org.cloudburstmc.nbt.NbtUtils;
 import org.cloudburstmc.protocol.bedrock.codec.v1001.Bedrock_v1001;
 import org.cloudburstmc.protocol.bedrock.codec.v2168.Bedrock_v2168;
+import org.cloudburstmc.protocol.bedrock.codec.v2192.Bedrock_v2192;
 import org.cloudburstmc.protocol.bedrock.codec.v589.Bedrock_v589;
 import org.cloudburstmc.protocol.bedrock.codec.v594.Bedrock_v594;
 import org.cloudburstmc.protocol.bedrock.codec.v618.Bedrock_v618;
@@ -106,7 +107,7 @@ import org.geysermc.geyser.item.exception.InvalidItemComponentsException;
 import org.geysermc.geyser.item.type.BlockItem;
 import org.geysermc.geyser.item.type.Item;
 import org.geysermc.geyser.level.block.property.Properties;
-import org.geysermc.geyser.network.GameProtocol;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.registry.BlockRegistries;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.registry.populator.conversion.ChaosCubedConverter;
@@ -184,7 +185,7 @@ public class ItemRegistryPopulator {
     }
 
     public static void populate() {
-        List<PaletteVersion> paletteVersions = new ArrayList<>(28);
+        List<PaletteVersion> paletteVersions = new ArrayList<>(29);
         Map<Item, Item> pre622Fallbacks = Legacy120Fallbacks.forPre662();
         Map<Item, Item> pre685Fallbacks = Legacy120Fallbacks.forPre685();
         Map<Item, Item> pre748Fallbacks = Legacy121Fallbacks.forPre748();
@@ -230,6 +231,7 @@ public class ItemRegistryPopulator {
         paletteVersions.add(new PaletteVersion("26_20", Bedrock_v975.CODEC.getProtocolVersion(), ChaosCubedConverter.convertItem(), "26_10"));
         paletteVersions.add(new PaletteVersion("26_30", Bedrock_v1001.CODEC.getProtocolVersion()));
         paletteVersions.add(new PaletteVersion("26_40", Bedrock_v2168.CODEC.getProtocolVersion()));
+        paletteVersions.add(new PaletteVersion("26_50", Bedrock_v2192.CODEC.getProtocolVersion()));
 
         GeyserBootstrap bootstrap = GeyserImpl.getInstance().getBootstrap();
 
@@ -274,6 +276,8 @@ public class ItemRegistryPopulator {
 
             // Used for custom items
             int nextFreeBedrockId = 0;
+            // Custom/data-driven definitions for pre-1.21.60 ItemComponentPacket (vanilla palette is in StartGame).
+            List<ItemDefinition> componentItemData = new ObjectArrayList<>();
             Int2ObjectMap<ItemDefinition> registry = new Int2ObjectOpenHashMap<>();
             Map<String, ItemDefinition> definitions = new Object2ObjectLinkedOpenHashMap<>();
 
@@ -644,6 +648,7 @@ public class ItemRegistryPopulator {
                             // ComponentItemData - used to register some custom properties
                             customItemDefinitions.put(MinecraftKey.identifierToKey(customItem.model()), customMapping);
                             registry.put(customMapping.integerId(), customMapping.itemDefinition());
+                            componentItemData.add(customMapping.itemDefinition());
 
                             customIdMappings.put(customMapping.integerId(), customItemIdentifier.toString());
                         } catch (InvalidItemComponentsException exception) {
@@ -739,6 +744,7 @@ public class ItemRegistryPopulator {
                     }
                     mappings.set(javaItem.javaId(), mapping);
                     registry.put(customItemId, mapping.getBedrockDefinition());
+                    componentItemData.add(mapping.getBedrockDefinition());
 
                     nonVanillaCustomItemIds.add(javaItem.javaId());
 
@@ -794,6 +800,8 @@ public class ItemRegistryPopulator {
                 }
                 if (definition == null) {
                     definition = new SimpleItemDefinition(identifier, customProtocolId, ItemVersion.NONE, false, null);
+                } else {
+                    componentItemData.add(definition);
                 }
                 registry.put(customProtocolId, definition);
                 customBlockItemDefinitions.put(customBlock, definition);
@@ -855,6 +863,7 @@ public class ItemRegistryPopulator {
                     .creativeItems(creativeItems)
                     .creativeItemGroups(creativeItemGroups)
                     .itemDefinitions(registry)
+                    .componentItemData(componentItemData)
                     .storedItems(new StoredItemMappings(javaItemToMapping))
                     .javaOnlyItems(javaOnlyItems)
                     .buckets(buckets)

@@ -25,7 +25,7 @@
 
 package org.geysermc.geyser.registry.populator.conversion;
 
-import org.geysermc.geyser.network.GameProtocol;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityType;
 
 /**

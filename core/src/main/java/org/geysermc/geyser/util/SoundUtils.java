@@ -108,7 +108,7 @@ public final class SoundUtils {
         SoundMapping soundMapping = Registries.SOUNDS.get(soundIdentifier);
         if (soundMapping == null) {
             // On pre-26.0 clients, unknown Java sounds are not played (no safe Bedrock substitute).
-            if (!org.geysermc.geyser.network.GameProtocol.is26_0orHigher(session.protocolVersion())) {
+            if (!org.geysermc.geyser.network.bedrock.GameProtocol.is26_0orHigher(session.protocolVersion())) {
                 session.getGeyser().getLogger().debug("[Builtin] Omitting unmapped sound on legacy Bedrock: " + soundIdentifier);
                 return;
             }

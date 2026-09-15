@@ -68,6 +68,12 @@ public class ItemMappings implements DefinitionRegistry<ItemDefinition> {
     List<CreativeItemGroup> creativeItemGroups;
     List<CreativeItemData> creativeItems;
     Int2ObjectMap<ItemDefinition> itemDefinitions;
+    /**
+     * Custom / data-driven items only. Pre-1.21.60 clients get these in {@code ItemComponentPacket}
+     * while the vanilla palette stays in StartGame. Sending the full modern registry there crashes
+     * older clients (e.g. 1.20.62); skipping this list leaves custom items as empty inventory slots.
+     */
+    List<ItemDefinition> componentItemData;
 
     StoredItemMappings storedItems;
     Set<Item> javaOnlyItems;

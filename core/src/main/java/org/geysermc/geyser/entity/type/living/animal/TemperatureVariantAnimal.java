@@ -28,7 +28,7 @@ package org.geysermc.geyser.entity.type.living.animal;
 import org.geysermc.geyser.api.util.Identifier;
 import org.geysermc.geyser.entity.properties.type.EnumProperty;
 import org.geysermc.geyser.entity.spawn.EntitySpawnContext;
-import org.geysermc.geyser.network.GameProtocol;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.session.cache.RegistryCache;
 
 public abstract class TemperatureVariantAnimal extends AnimalEntity implements VariantHolder<TemperatureVariantAnimal.BuiltInVariant> {
