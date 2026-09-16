@@ -46,7 +46,9 @@ class BedrockVersionLimiterTest {
         new MinecraftVersionImpl("26.0", 1000),
         new MinecraftVersionImpl("26.45", 2169),
         new MinecraftVersionImpl("26.50", 2192),
-        new MinecraftVersionImpl("26.50", 2193)
+        new MinecraftVersionImpl("26.50", 2193),
+        new MinecraftVersionImpl("26.51", 2192),
+        new MinecraftVersionImpl("26.51", 2193)
     );
 
     @Test
@@ -55,6 +57,8 @@ class BedrockVersionLimiterTest {
         assertEquals(Set.of(748), resolve("748"));
         assertEquals(Set.of(2192, 2193), resolve("26.50"));
         assertEquals(Set.of(2192, 2193), resolve("1.26.50"));
+        assertEquals(Set.of(2192, 2193), resolve("26.51"));
+        assertEquals(Set.of(2192, 2193), resolve("1.26.51"));
         assertEquals(Set.of(2192, 2193), resolve("2193"));
         assertEquals(Set.of(2192, 2193), resolve("2192"));
     }
@@ -76,6 +80,8 @@ class BedrockVersionLimiterTest {
     void comparisons() {
         assertEquals(Set.of(2169, 2192, 2193), resolve(">=26.45"));
         assertEquals(Set.of(2169, 2192, 2193), resolve(">=1.26.45"));
+        assertEquals(Set.of(2192, 2193), resolve(">=26.51"));
+        assertEquals(Set.of(2192, 2193), resolve(">=1.26.51"));
         assertEquals(Set.of(589, 594, 685, 748), resolve("<26.0"));
         assertEquals(Set.of(2192, 2193), resolve(">2169"));
         assertEquals(Set.of(589, 594, 685, 748, 1000, 2169), resolve("<=2169"));

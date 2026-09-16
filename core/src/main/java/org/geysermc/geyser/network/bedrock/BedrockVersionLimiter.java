@@ -224,7 +224,7 @@ public final class BedrockVersionLimiter {
     }
 
     /**
-     * Retail 26.50 reports 2193; Cloudburst still numbers the codec 2192.
+     * Retail 26.50/26.51 report 2193; Cloudburst still numbers the codec 2192.
      */
     static boolean sameProtocol(int left, int right) {
         if (left == right) {
@@ -241,7 +241,7 @@ public final class BedrockVersionLimiter {
         if (value == null || value.isEmpty()) {
             return null;
         }
-        // GameProtocol lists 26.x as "26.50"; clients/Via often write "1.26.50".
+        // GameProtocol lists 26.x as "26.50"; clients/Via often write "1.26.50" / "1.26.51".
         if (value.startsWith("1.26.")) {
             value = value.substring(2);
         }

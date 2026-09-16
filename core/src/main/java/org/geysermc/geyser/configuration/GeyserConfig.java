@@ -270,7 +270,7 @@ public interface GeyserConfig {
         @Comment("""
             Via-style Bedrock version limiter. When enabled, only versions in "list" may join.
             When disabled, every Bedrock version this Geyser build can translate is accepted.
-            List entries may be a version ("1.21.40", "26.50"), a protocol number ("748"),
+            List entries may be a version ("1.21.40", "26.51"), a protocol number ("748"),
             a comparison (">=1.21.0", "<=26.45", "<26.0"), or a range ("1.20.0-1.20.80").""")
         AllowedVersionsConfig allowedVersions();
 

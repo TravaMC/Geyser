@@ -94,7 +94,7 @@ public final class GameProtocol {
     public static final List<MinecraftVersion> SUPPORTED_BEDROCK_VERSIONS = new ArrayList<>();
 
     /**
-     * Protocol number retail Bedrock 26.50 actually sends.
+     * Protocol number retail Bedrock 26.50 and hotfix 26.51 actually send.
      * Cloudburst's {@link Bedrock_v2192} codec is still numbered 2192.
      */
     public static final int BEDROCK_1_26_50_PROTOCOL = 2193;
@@ -148,16 +148,16 @@ public final class GameProtocol {
         register(Bedrock_v1001.CODEC, "26.30", "26.31", "26.32", "26.33", "26.34");
         register(Bedrock_v2168_hotfix4.CODEC, "26.40", "26.41", "26.42", "26.43", "26.44");
         register(Bedrock_v2169.CODEC, "26.45");
-        // Cloudburst still numbers this codec 2192; retail 26.50 sends 2193.
+        // Cloudburst still numbers this codec 2192; retail 26.50/26.51 send 2193.
         int codec26_50 = Bedrock_v2192.CODEC.getProtocolVersion();
         if (codec26_50 < BEDROCK_1_26_50_PROTOCOL) {
-            register(Bedrock_v2192.CODEC, "26.50");
-            register(Bedrock_v2192.CODEC.toBuilder().protocolVersion(BEDROCK_1_26_50_PROTOCOL).build(), "26.50");
+            register(Bedrock_v2192.CODEC, "26.50", "26.51");
+            register(Bedrock_v2192.CODEC.toBuilder().protocolVersion(BEDROCK_1_26_50_PROTOCOL).build(), "26.50", "26.51");
         } else if (codec26_50 == BEDROCK_1_26_50_PROTOCOL) {
-            register(Bedrock_v2192.CODEC.toBuilder().protocolVersion(2192).build(), "26.50");
-            register(Bedrock_v2192.CODEC, "26.50");
+            register(Bedrock_v2192.CODEC.toBuilder().protocolVersion(2192).build(), "26.50", "26.51");
+            register(Bedrock_v2192.CODEC, "26.50", "26.51");
         } else {
-            register(Bedrock_v2192.CODEC, "26.50");
+            register(Bedrock_v2192.CODEC, "26.50", "26.51");
         }
 
         MinecraftVersion latestBedrock = SUPPORTED_BEDROCK_VERSIONS.getLast();
@@ -291,7 +291,7 @@ public final class GameProtocol {
     }
 
     /**
-     * Retail 26.50 reports 2193 while the Cloudburst codec class is still v2192.
+     * Retail 26.50/26.51 report 2193 while the Cloudburst codec class is still v2192.
      */
     public static boolean isSame26_50Protocol(int protocolVersion) {
         int cloudburst = Bedrock_v2192.CODEC.getProtocolVersion();
