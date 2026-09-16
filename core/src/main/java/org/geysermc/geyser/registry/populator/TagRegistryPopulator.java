@@ -66,6 +66,7 @@ import org.cloudburstmc.protocol.bedrock.codec.v975.Bedrock_v975;
 import org.geysermc.geyser.GeyserBootstrap;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.item.type.Item;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.registry.type.ItemMapping;
 import org.geysermc.geyser.registry.type.ItemMappings;
@@ -124,7 +125,8 @@ public final class TagRegistryPopulator {
             ObjectIntPair.of("26_20", Bedrock_v975.CODEC.getProtocolVersion()),
             ObjectIntPair.of("26_30", Bedrock_v1001.CODEC.getProtocolVersion()),
             ObjectIntPair.of("26_30", Bedrock_v2168.CODEC.getProtocolVersion()),
-            ObjectIntPair.of("26_30", Bedrock_v2192.CODEC.getProtocolVersion())
+            ObjectIntPair.of("26_30", Bedrock_v2192.CODEC.getProtocolVersion()),
+            ObjectIntPair.of("26_30", GameProtocol.BEDROCK_1_26_50_PROTOCOL)
         );
         Type type = new TypeToken<Map<String, List<String>>>() {}.getType();
 

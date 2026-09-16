@@ -94,6 +94,12 @@ public final class GameProtocol {
     public static final List<MinecraftVersion> SUPPORTED_BEDROCK_VERSIONS = new ArrayList<>();
 
     /**
+     * Protocol number retail Bedrock 26.50 actually sends.
+     * Cloudburst's {@link Bedrock_v2192} codec is still numbered 2192.
+     */
+    public static final int BEDROCK_1_26_50_PROTOCOL = 2193;
+
+    /**
      * The latest Bedrock protocol version that Geyser supports.
      */
     public static final int DEFAULT_BEDROCK_PROTOCOL;
@@ -142,7 +148,17 @@ public final class GameProtocol {
         register(Bedrock_v1001.CODEC, "26.30", "26.31", "26.32", "26.33", "26.34");
         register(Bedrock_v2168_hotfix4.CODEC, "26.40", "26.41", "26.42", "26.43", "26.44");
         register(Bedrock_v2169.CODEC, "26.45");
-        register(Bedrock_v2192.CODEC.toBuilder().protocolVersion(2193).build(), "26.50");
+        // Cloudburst still numbers this codec 2192; retail 26.50 sends 2193.
+        int codec26_50 = Bedrock_v2192.CODEC.getProtocolVersion();
+        if (codec26_50 < BEDROCK_1_26_50_PROTOCOL) {
+            register(Bedrock_v2192.CODEC, "26.50");
+            register(Bedrock_v2192.CODEC.toBuilder().protocolVersion(BEDROCK_1_26_50_PROTOCOL).build(), "26.50");
+        } else if (codec26_50 == BEDROCK_1_26_50_PROTOCOL) {
+            register(Bedrock_v2192.CODEC.toBuilder().protocolVersion(2192).build(), "26.50");
+            register(Bedrock_v2192.CODEC, "26.50");
+        } else {
+            register(Bedrock_v2192.CODEC, "26.50");
+        }
 
         MinecraftVersion latestBedrock = SUPPORTED_BEDROCK_VERSIONS.getLast();
         DEFAULT_BEDROCK_VERSION = latestBedrock.versionString();
@@ -275,6 +291,14 @@ public final class GameProtocol {
     }
 
     /**
+     * Retail 26.50 reports 2193 while the Cloudburst codec class is still v2192.
+     */
+    public static boolean isSame26_50Protocol(int protocolVersion) {
+        int cloudburst = Bedrock_v2192.CODEC.getProtocolVersion();
+        return protocolVersion == cloudburst || protocolVersion == BEDROCK_1_26_50_PROTOCOL;
+    }
+
+    /**
      * Whether {@code flag} exists in the client's protocol EntityFlag TypeMap.
      * <p>
      * Cloudburst's {@code FlagTransformer} calls {@code TypeMap.getId}, which throws when a flag
@@ -333,6 +357,7 @@ public final class GameProtocol {
     public static String getAllSupportedBedrockVersions() {
         return SUPPORTED_BEDROCK_VERSIONS.stream()
             .map(MinecraftVersion::versionString)
+            .distinct()
             .collect(Collectors.joining(", "));
     }
 

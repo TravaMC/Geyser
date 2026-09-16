@@ -259,6 +259,21 @@ public interface GeyserConfig {
             Only used with the "nethernet" and "both" transports. Changes require a restart.""")
         SignalingConfig signaling();
 
+        @Comment("""
+            Allow Bedrock players who are not signed into Xbox Live (unsigned chain or guest).
+            They are assigned XUID 0 and are let onto the Java server. Usernames can be spoofed.
+            Only enable this when the Java side uses offline auth (for example a Velocity offline limbo).
+            Xbox-signed players are still validated when advanced.bedrock.validate-bedrock-login is true.""")
+        @DefaultBoolean
+        boolean allowOfflineXbox();
+
+        @Comment("""
+            Via-style Bedrock version limiter. When enabled, only versions in "list" may join.
+            When disabled, every Bedrock version this Geyser build can translate is accepted.
+            List entries may be a version ("1.21.40", "26.50"), a protocol number ("748"),
+            a comparison (">=1.21.0", "<=26.45", "<26.0"), or a range ("1.20.0-1.20.80").""")
+        AllowedVersionsConfig allowedVersions();
+
         void address(String address);
         void port(int port);
         void webrtcPort(int port);
@@ -300,6 +315,18 @@ public interface GeyserConfig {
 
             public boolean nethernet() {
                 return this == BOTH || this == NETHERNET;
+            }
+        }
+
+        @ConfigSerializable
+        interface AllowedVersionsConfig {
+            @Comment("Master switch for the version limiter. Off = all Geyser-supported Bedrock versions may join.")
+            @DefaultBoolean
+            boolean enabled();
+
+            @Comment("Allowed Bedrock versions, protocols, comparisons, or ranges. Ignored unless enabled is true.")
+            default List<String> list() {
+                return Collections.emptyList();
             }
         }
     }

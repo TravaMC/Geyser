@@ -55,7 +55,11 @@ public class CodecProcessorTest {
             BedrockCodec baseCodec;
             Map<Class<? extends BedrockPacket>, BedrockPacketDefinition<? extends BedrockPacket>> packetDefinitionMap;
             try {
-                Class<?> bedrockClass = Class.forName("org.cloudburstmc.protocol.bedrock.codec.v" + version + ".Bedrock_v" + version);
+                int lookupVersion = switch (version) {
+                    case GameProtocol.BEDROCK_1_26_50_PROTOCOL -> 2192;
+                    default -> version;
+                };
+                Class<?> bedrockClass = Class.forName("org.cloudburstmc.protocol.bedrock.codec.v" + lookupVersion + ".Bedrock_v" + lookupVersion);
                 Field codecField = bedrockClass.getField("CODEC");
                 baseCodec = (BedrockCodec) codecField.get(null);
                 Field packetDefinitionsField = BedrockCodec.class.getDeclaredField("packetsByClass");

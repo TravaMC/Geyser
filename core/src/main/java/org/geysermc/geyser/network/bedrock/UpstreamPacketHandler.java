@@ -147,6 +147,12 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
         }
 
         session.getUpstream().getSession().setCodec(packetCodec);
+        if (!BedrockVersionLimiter.isProtocolAllowed(geyser.config(), protocolVersion)) {
+            session.getUpstream().getSession().setCodec(BedrockCompat.disconnectCompat(protocolVersion));
+            session.disconnect(GeyserLocale.getLocaleStringLog("geyser.network.restricted.version",
+                BedrockVersionLimiter.describeAllowed(geyser.config())));
+            return false;
+        }
         return true;
     }
 
@@ -206,7 +212,7 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
             return PacketSignal.HANDLED;
         }
 
-        if (geyser.getSessionManager().isXuidAlreadyPending(session.xuid()) || geyser.getSessionManager().sessionByXuid(session.xuid()) != null) {
+        if (alreadyLoggedIn(session)) {
             session.disconnect(GeyserLocale.getLocaleStringLog("geyser.auth.already_loggedin", session.bedrockUsername()));
             return PacketSignal.HANDLED;
         }
@@ -311,6 +317,24 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
         }
         session.executeInEventLoop(() -> session.getFormCache().handleResponse(packet));
         return PacketSignal.HANDLED;
+    }
+
+    /**
+     * Xbox accounts are unique by XUID. Offline-Xbox players all share XUID 0, so uniqueness is by username.
+     */
+    private boolean alreadyLoggedIn(GeyserSession session) {
+        String xuid = session.xuid();
+        if (xuid == null || xuid.isBlank() || "0".equals(xuid)) {
+            String name = session.bedrockUsername();
+            for (GeyserSession other : geyser.getSessionManager().getAllSessions()) {
+                if (other != session && name.equalsIgnoreCase(other.bedrockUsername())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return geyser.getSessionManager().isXuidAlreadyPending(xuid)
+            || geyser.getSessionManager().sessionByXuid(xuid) != null;
     }
 
     private boolean couldLoginUserByName(String bedrockUsername) {

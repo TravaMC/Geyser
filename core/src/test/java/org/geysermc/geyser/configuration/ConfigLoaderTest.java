@@ -139,6 +139,9 @@ public class ConfigLoaderTest {
 
         assertEquals(GeyserConfig.BedrockConfig.Transport.RAKNET, config.bedrock().transport());
         assertEquals(0, config.bedrock().webrtcPort());
+        assertFalse(config.bedrock().allowOfflineXbox());
+        assertFalse(config.bedrock().allowedVersions().enabled());
+        assertEquals(List.of(), config.bedrock().allowedVersions().list());
 
         // Verify Java section (was remote)
         assertEquals(configClass == GeyserRemoteConfig.class ? "test.geysermc.org" : null, config.java().address());
@@ -256,6 +259,12 @@ public class ConfigLoaderTest {
 
         // Test @IncludePlatform - bungee-listener should ONLY be present on BungeeCord platform
         assertEquals(!bungee, config.node("advanced", "java", "bungee-listener").virtual());
+
+        assertFalse(config.node("bedrock", "allow-offline-xbox").virtual());
+        assertFalse(config.node("bedrock", "allow-offline-xbox").getBoolean());
+        assertFalse(config.node("bedrock", "allowed-versions", "enabled").virtual());
+        assertFalse(config.node("bedrock", "allowed-versions", "enabled").getBoolean());
+        assertFalse(config.node("bedrock", "allowed-versions", "list").virtual());
     }
 
     @Test

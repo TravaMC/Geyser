@@ -141,7 +141,7 @@ public class GeyserSessionAdapter extends SessionAdapter {
         if (uuid == null) {
             // Set what our UUID *probably* is going to be
             if (session.remoteServer().authType() == AuthType.FLOODGATE) {
-                uuid = new UUID(0, Long.parseLong(session.xuid()));
+                uuid = floodgateUuid(session.xuid(), session.getProtocol().getProfile().getName());
             } else {
                 uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + session.getProtocol().getProfile().getName()).getBytes(StandardCharsets.UTF_8));
             }
@@ -238,5 +238,20 @@ public class GeyserSessionAdapter extends SessionAdapter {
         if (geyser.config().debugMode())
             event.getCause().printStackTrace();
         event.setSuppress(true);
+    }
+
+    /**
+     * Floodgate UUIDs are {@code UUID(0, xuid)}. XUID 0 is shared by every offline-Xbox player,
+     * so those accounts use an offline-style UUID from the Java name instead.
+     */
+    private static UUID floodgateUuid(String xuid, String javaName) {
+        if (xuid != null && !xuid.isBlank() && !"0".equals(xuid)) {
+            try {
+                return new UUID(0, Long.parseLong(xuid));
+            } catch (NumberFormatException ignored) {
+                // Fall through to the offline UUID.
+            }
+        }
+        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + javaName).getBytes(StandardCharsets.UTF_8));
     }
 }

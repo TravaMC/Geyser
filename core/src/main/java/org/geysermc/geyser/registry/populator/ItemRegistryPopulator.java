@@ -232,6 +232,7 @@ public class ItemRegistryPopulator {
         paletteVersions.add(new PaletteVersion("26_30", Bedrock_v1001.CODEC.getProtocolVersion()));
         paletteVersions.add(new PaletteVersion("26_40", Bedrock_v2168.CODEC.getProtocolVersion()));
         paletteVersions.add(new PaletteVersion("26_50", Bedrock_v2192.CODEC.getProtocolVersion()));
+        paletteVersions.add(new PaletteVersion("26_50", GameProtocol.BEDROCK_1_26_50_PROTOCOL));
 
         GeyserBootstrap bootstrap = GeyserImpl.getInstance().getBootstrap();
 

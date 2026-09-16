@@ -78,6 +78,7 @@ import org.cloudburstmc.protocol.bedrock.data.BlockPropertyData;
 import org.cloudburstmc.protocol.bedrock.data.definitions.BlockDefinition;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.block.custom.CustomBlockData;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.api.block.custom.CustomBlockState;
 import org.geysermc.geyser.api.block.custom.nonvanilla.JavaBlockState;
 import org.geysermc.geyser.level.block.Blocks;
@@ -184,6 +185,7 @@ public final class BlockRegistryPopulator {
                 .put(ObjectIntPair.of("26_30", Bedrock_v1001.CODEC.getProtocolVersion()), ICanHasStates::convertBlock)
                 .put(ObjectIntPair.of("26_40", Bedrock_v2168.CODEC.getProtocolVersion()), ICanHasStates::convertBlock)
                 .put(ObjectIntPair.of("26_50", Bedrock_v2192.CODEC.getProtocolVersion()), tag -> tag)
+                .put(ObjectIntPair.of("26_50", GameProtocol.BEDROCK_1_26_50_PROTOCOL), tag -> tag)
             .build();
 
         // We can keep this strong as nothing should be garbage collected

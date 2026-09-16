@@ -85,6 +85,7 @@ import org.geysermc.geyser.impl.MinecraftVersionImpl;
 import org.geysermc.geyser.level.BedrockDimension;
 import org.geysermc.geyser.level.WorldManager;
 import org.geysermc.geyser.network.RaknetServer;
+import org.geysermc.geyser.network.bedrock.BedrockVersionLimiter;
 import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.network.bedrock.nethernet.NetherNetServer;
 import org.geysermc.geyser.ping.GeyserLegacyPingPassthrough;
@@ -344,6 +345,18 @@ public class GeyserImpl implements GeyserApi, EventRegistrar {
             logger.error("XBOX AUTHENTICATION IS DISABLED ON THIS GEYSER INSTANCE!");
             logger.error("While this allows using Bedrock edition proxies, it also opens up the ability for hackers to connect with any username they choose.");
             logger.error("To change this, set \"disable-xbox-auth\" to \"false\" in Geyser's config file.");
+        }
+
+        if (config.bedrock().allowOfflineXbox()) {
+            logger.warning("Bedrock players without Xbox Live are allowed (XUID 0). Usernames can be spoofed.");
+        }
+
+        if (config.bedrock().allowedVersions().enabled()) {
+            String allowed = BedrockVersionLimiter.describeAllowed(config);
+            logger.info("Bedrock version limiter enabled. Allowed versions: " + allowed);
+            if ("(none)".equals(allowed)) {
+                logger.error("Bedrock version limiter is enabled but the allowlist is empty or invalid — no Bedrock client can join.");
+            }
         }
 
         pendingMicrosoftAuthentication = new PendingMicrosoftAuthentication(config.pendingAuthenticationTimeout());

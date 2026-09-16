@@ -188,6 +188,7 @@ public class ConfigMigrations {
                 .addAction(path("gameplay", "show-cooldown"), rename(new Object[] { "gameplay", "cooldown-type" }))
                 .build())
             .addVersion(8, ConfigurationTransformation.empty())
+            .addVersion(9, ConfigurationTransformation.empty())
         .build();
 
     static TransformAction renameAndMove(String... newPath) {

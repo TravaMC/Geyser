@@ -68,7 +68,10 @@ public class LoginEncryptionUtils {
             GeyserImpl geyser = session.getGeyser();
 
             // Regardless of auth type, we don't support guest type accounts used for splitscreen
-            if (authPayload.getAuthType() == AuthType.GUEST) {
+            // unless the operator explicitly allows players without Xbox Live.
+            boolean allowOfflineXbox = geyser.config().bedrock().allowOfflineXbox();
+            boolean guest = authPayload.getAuthType() == AuthType.GUEST;
+            if (guest && !allowOfflineXbox) {
                 session.disconnect(GeyserLocale.getLocaleStringLog("geyser.network.remote.invalid_xbox_account"));
                 return;
             }
@@ -76,7 +79,7 @@ public class LoginEncryptionUtils {
             ChainValidationResult result = EncryptionUtils.validatePayload(authPayload);
 
             geyser.getLogger().debug("Is player data signed? %s", result.signed());
-            if (!result.signed() && session.getGeyser().config().advanced().bedrock().validateBedrockLogin()) {
+            if (!result.signed() && !allowOfflineXbox && session.getGeyser().config().advanced().bedrock().validateBedrockLogin()) {
                 session.disconnect(GeyserLocale.getLocaleStringLog("geyser.network.remote.invalid_xbox_account"));
                 return;
             }
@@ -106,8 +109,10 @@ public class LoginEncryptionUtils {
 
             // A proxy re-signs the chain with its own key, so the two only line up for a direct client.
             // Every other transport binds the chain through the encryption handshake below instead.
+            // Unsigned / no-Xbox logins cannot satisfy the NetherNet identity binding.
             if (!geyser.config().advanced().bedrock().useWaterdogpeForwarding()
-                    && session.getUpstream().getSession().getPeer() instanceof NetherNetPeer) {
+                    && session.getUpstream().getSession().getPeer() instanceof NetherNetPeer
+                    && (result.signed() || !allowOfflineXbox)) {
                 if (refusedByBinding(geyser, session, TransportIdentityBinding.mismatch(
                         session.getUpstream().getSession().getPeer().getChannel(), identityPublicKey))) {
                     return;
@@ -116,6 +121,13 @@ public class LoginEncryptionUtils {
 
             IdentityData extraData = result.identityClaims().extraData;
             String xuid = extraData.xuid;
+            boolean missingXbox = guest || !result.signed()
+                || xuid == null || xuid.isBlank() || "0".equals(xuid);
+            if (missingXbox && allowOfflineXbox) {
+                xuid = "0";
+            } else if (xuid == null || xuid.isBlank()) {
+                xuid = "0";
+            }
             if (geyser.config().advanced().bedrock().useWaterdogpeForwarding()) {
                 String waterdogIp = data.getWaterdogIp();
                 String waterdogXuid = data.getWaterdogXuid();
