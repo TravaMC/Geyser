@@ -112,6 +112,7 @@ import org.geysermc.geyser.registry.BlockRegistries;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.registry.populator.conversion.ChaosCubedConverter;
 import org.geysermc.geyser.registry.populator.conversion.GoldenDandelionConverter;
+import org.geysermc.geyser.registry.populator.conversion.ICanHasStates;
 import org.geysermc.geyser.registry.populator.conversion.Legacy120Fallbacks;
 import org.geysermc.geyser.registry.populator.conversion.Legacy121Fallbacks;
 import org.geysermc.geyser.registry.type.BlockMappings;
@@ -408,6 +409,9 @@ public class ItemRegistryPopulator {
                     mappingItem = entry.getValue();
                 }
                 // Always remap: java-only fallbacks (e.g. sulfur→yellow_concrete) still need palette downgrades.
+                if (!GameProtocol.is26_50orHigher(palette.protocolVersion())) {
+                    mappingItem = ICanHasStates.remapItem(javaItem, mappingItem);
+                }
                 mappingItem = palette.remapper().remap(javaItem, mappingItem);
 
                 String bedrockIdentifier = mappingItem.getBedrockIdentifier();

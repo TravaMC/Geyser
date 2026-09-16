@@ -218,6 +218,12 @@ public final class BlockRegistryPopulator {
                 throw new AssertionError("Unable to get blocks from runtime block states", e);
             }
 
+            Map<String, Set<String>> allowedStateKeys = new Object2ObjectOpenHashMap<>();
+            for (NbtMap vanilla : vanillaBlockStates) {
+                allowedStateKeys.computeIfAbsent(vanilla.getString("name"), unused -> new ObjectOpenHashSet<>())
+                    .addAll(vanilla.getCompound("states").keySet());
+            }
+
             List<BlockPropertyData> customBlockProperties = new ArrayList<>();
             List<NbtMap> customBlockStates = new ArrayList<>();
             List<CustomBlockState> customExtBlockStates = new ArrayList<>();
@@ -329,7 +335,13 @@ public final class BlockRegistryPopulator {
                 String javaId = blockState.toString();
 
                 NbtMap originalBedrockTag = buildBedrockState(blockState, entry);
-                NbtMap bedrockTag = stateMapper.remap(originalBedrockTag);
+                NbtMap bedrockTag = originalBedrockTag;
+                if (!GameProtocol.is26_50orHigher(protocolVersion)) {
+                    // Name remaps + known 26.50 states first, then the version chain (oak_slab → wooden_slab, …).
+                    bedrockTag = ICanHasStates.convertBlock(bedrockTag);
+                }
+                bedrockTag = stateMapper.remap(bedrockTag);
+                bedrockTag = keepPaletteStates(bedrockTag, allowedStateKeys);
 
                 GeyserBedrockBlock vanillaBedrockDefinition = blockStateOrderedMap.get(bedrockTag);
 
@@ -542,6 +554,34 @@ public final class BlockRegistryPopulator {
             blockStateSet.set(BlockRegistries.JAVA_BLOCK_STATE_IDENTIFIER_TO_ID.get().getInt(javaIdentifier.getAsString()));
         }
         return blockStateSet;
+    }
+
+    /**
+     * Drops Bedrock states the loaded palette does not have for this block (e.g. 26.50 {@code minecraft:corner}).
+     */
+    private static NbtMap keepPaletteStates(NbtMap tag, Map<String, Set<String>> allowedStateKeys) {
+        Set<String> allowed = allowedStateKeys.get(tag.getString("name"));
+        if (allowed == null) {
+            return tag;
+        }
+        NbtMap states = tag.getCompound("states");
+        boolean extra = false;
+        for (String key : states.keySet()) {
+            if (!allowed.contains(key)) {
+                extra = true;
+                break;
+            }
+        }
+        if (!extra) {
+            return tag;
+        }
+        NbtMapBuilder statesBuilder = NbtMap.builder();
+        for (Map.Entry<String, Object> entry : states.entrySet()) {
+            if (allowed.contains(entry.getKey())) {
+                statesBuilder.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return tag.toBuilder().putCompound("states", statesBuilder.build()).build();
     }
 
     private static NbtMap buildBedrockState(BlockState state, NbtMap nbt) {
