@@ -630,10 +630,12 @@ public interface GeyserConfig {
         boolean addTeamSuggestions();
 
         @Comment("""
-            Log detailed Bedrock join packet dumps to the console (for diagnosing client disconnects during join).
-            Leave disabled unless debugging a join issue. (Default: false)""")
-        @DefaultBoolean(false)
-        boolean dumpJoinPackets();
+            Bedrock join packet dump (console + join-dumps/ next to this config). Empty = off.
+            Use ["*"] for every protocol, or protocol numbers and/or version strings
+            such as ["582", "1.19.83", "748"]. (Default: [])""")
+        default List<String> dumpJoinPackets() {
+            return Collections.emptyList();
+        }
 
         @Comment("""
             A list of remote resource pack urls to send to the Bedrock client for downloading.

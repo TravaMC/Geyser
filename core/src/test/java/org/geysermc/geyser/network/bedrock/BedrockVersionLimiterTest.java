@@ -86,7 +86,7 @@ class BedrockVersionLimiterTest {
         assertEquals(Set.of(2192, 2193), resolve(">2169"));
         assertEquals(Set.of(589, 594, 685, 748, 1000, 2169), resolve("<=2169"));
         assertEquals(Set.of(2192, 2193), resolve(">=2193"));
-        assertEquals(Set.of(2192, 2193), resolve("<=2192"));
+        assertEquals(Set.of(589, 594, 685, 748, 1000, 2169, 2192, 2193), resolve("<=2192"));
         assertTrue(resolve(">2192").isEmpty());
         assertEquals(Set.of(589, 594, 685, 748, 1000, 2169), resolve("<2193"));
     }

@@ -54,6 +54,7 @@ import org.cloudburstmc.protocol.bedrock.codec.v729.serializer.InventoryContentS
 import org.cloudburstmc.protocol.bedrock.codec.v729.serializer.InventorySlotSerializer_v729;
 import org.cloudburstmc.protocol.bedrock.codec.v748.serializer.InventoryContentSerializer_v748;
 import org.cloudburstmc.protocol.bedrock.codec.v748.serializer.InventorySlotSerializer_v748;
+import org.cloudburstmc.protocol.bedrock.codec.v776.Bedrock_v776;
 import org.cloudburstmc.protocol.bedrock.codec.v975.serializer.InventorySlotSerializer_v975;
 import org.cloudburstmc.protocol.bedrock.codec.v975.serializer.MobEquipmentSerializer_v975;
 import org.cloudburstmc.protocol.bedrock.codec.v975.serializer.MoveEntityAbsoluteSerializer_v975;
@@ -473,13 +474,14 @@ public class CodecProcessor {
             updateSerializerIfPresent(codecBuilder, PlayerSkinPacket.class, PLAYER_SKIN_SERIALIZER_V2168);
         }
 
-        // BossEvent: v776 until 26.30, v1001 until 26.50, then v2192.
-        if (codec.getProtocolVersion() < 1001) {
-            updateSerializerIfPresent(codecBuilder, BossEventPacket.class, BOSS_EVENT_SERIALIZER_V776);
-        } else if (codec.getProtocolVersion() < 2192) {
-            updateSerializerIfPresent(codecBuilder, BossEventPacket.class, BOSS_EVENT_SERIALIZER_V1001);
-        } else {
+        // BossEvent v776 added filteredTitle. Applying it to 748/766 writes one extra string
+        // and desynchronizes every CREATE/UPDATE_NAME packet; retain their native serializer.
+        if (codec.getProtocolVersion() >= 2192) {
             updateSerializerIfPresent(codecBuilder, BossEventPacket.class, BOSS_EVENT_SERIALIZER_V2192);
+        } else if (codec.getProtocolVersion() >= 1001) {
+            updateSerializerIfPresent(codecBuilder, BossEventPacket.class, BOSS_EVENT_SERIALIZER_V1001);
+        } else if (codec.getProtocolVersion() >= Bedrock_v776.CODEC.getProtocolVersion()) {
+            updateSerializerIfPresent(codecBuilder, BossEventPacket.class, BOSS_EVENT_SERIALIZER_V776);
         }
 
         return codecBuilder.build();

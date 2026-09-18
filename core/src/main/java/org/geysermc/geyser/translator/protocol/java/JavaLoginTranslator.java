@@ -101,7 +101,7 @@ public class JavaLoginTranslator extends PacketTranslator<ClientboundLoginPacket
 
             // It is now safe to send these packets
             session.getUpstream().sendPostStartGamePackets(bedrockPacket ->
-                session.logJoinDump("POST-STARTGAME " + bedrockPacket.getClass().getSimpleName()));
+                session.logJoinDump("OUT " + session.describeJoinPacket(bedrockPacket)));
         } else {
             SetPlayerGameTypePacket playerGameTypePacket = new SetPlayerGameTypePacket();
             playerGameTypePacket.setGamemode(EntityUtils.toBedrockGamemode(spawnInfo.getGameMode()).ordinal());

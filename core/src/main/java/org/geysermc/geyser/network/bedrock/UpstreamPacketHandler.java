@@ -108,6 +108,7 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
     }
 
     private PacketSignal translateAndDefault(BedrockPacket packet) {
+        session.dumpInbound(packet);
         Registries.BEDROCK_PACKET_TRANSLATORS.translate(packet.getClass(), packet, session, false);
         return PacketSignal.HANDLED; // PacketSignal.UNHANDLED will log a WARN publicly
     }
@@ -147,6 +148,8 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
         }
 
         session.getUpstream().getSession().setCodec(packetCodec);
+        session.cacheBedrockProtocol(protocolVersion);
+        session.beginJoinDump("codec " + packetCodec.getMinecraftVersion() + " protocol=" + protocolVersion);
         if (!BedrockVersionLimiter.isProtocolAllowed(geyser.config(), protocolVersion)) {
             session.getUpstream().getSession().setCodec(BedrockCompat.disconnectCompat(protocolVersion));
             session.disconnect(GeyserLocale.getLocaleStringLog("geyser.network.restricted.version",
@@ -172,6 +175,7 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
         if (!setCorrectCodec(packet.getProtocolVersion())) {
             return PacketSignal.HANDLED;
         }
+        session.dumpInbound(packet);
 
         // New since 1.19.30 - sent before login packet
         NetworkSettingsPacket responsePacket = new NetworkSettingsPacket();
@@ -203,6 +207,7 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
             return PacketSignal.HANDLED;
         }
         receivedLoginPacket = true;
+        session.dumpInbound(loginPacket);
 
         LoginEncryptionUtils.encryptPlayerConnection(session, loginPacket);
 
@@ -258,6 +263,7 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
         if (session.getUpstream().isClosed() || session.isClosed()) {
             return PacketSignal.HANDLED;
         }
+        session.dumpInbound(packet);
 
         if (finishedResourcePackSending) {
             session.disconnect("Illegal duplicate resource pack response packet received!");
@@ -288,7 +294,7 @@ public class UpstreamPacketHandler extends LoggingPacketHandler {
                 ResourcePackStackPacket stackPacket = new ResourcePackStackPacket();
                 stackPacket.setExperimentsPreviouslyToggled(false);
                 stackPacket.setForcedToAccept(false); // Leaving this as false allows the player to choose to download or not
-                stackPacket.setGameVersion("*");
+                stackPacket.setGameVersion(session.clientVanillaVersion());
                 stackPacket.getResourcePacks().addAll(this.resourcePackLoadEvent.orderedPacks());
 
                 // Do not enable experimental_graphics on pre-1.21.90 — hung 1.21.70/80 join.

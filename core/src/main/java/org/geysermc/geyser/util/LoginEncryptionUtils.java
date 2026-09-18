@@ -33,7 +33,6 @@ import org.cloudburstmc.protocol.bedrock.data.auth.TokenPayload;
 import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
 import org.cloudburstmc.protocol.bedrock.packet.ServerToClientHandshakePacket;
 import org.cloudburstmc.protocol.bedrock.util.ChainValidationResult;
-import org.cloudburstmc.protocol.bedrock.util.ChainValidationResult.IdentityData;
 import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 import org.geysermc.cumulus.form.ModalForm;
 import org.geysermc.cumulus.form.SimpleForm;
@@ -78,15 +77,10 @@ public class LoginEncryptionUtils {
 
             ChainValidationResult result = EncryptionUtils.validatePayload(authPayload);
 
-            geyser.getLogger().debug("Is player data signed? %s", result.signed());
-            if (!result.signed() && !allowOfflineXbox && session.getGeyser().config().advanced().bedrock().validateBedrockLogin()) {
-                session.disconnect(GeyserLocale.getLocaleStringLog("geyser.network.remote.invalid_xbox_account"));
-                return;
-            }
+            geyser.getLogger().debug("Is player data signed? %s authType=%s", result.signed(), authPayload.getAuthType());
 
-            // Should always be present, but hey, why not make it safe :D
-            Long rawIssuedAt = (Long) result.rawIdentityClaims().get("iat");
-            long issuedAt = rawIssuedAt != null ? rawIssuedAt : -1;
+            Object rawIssuedAt = result.rawIdentityClaims().get("iat");
+            long issuedAt = rawIssuedAt instanceof Number number ? number.longValue() : -1;
 
             if (authPayload instanceof TokenPayload tokenPayload) {
                 session.setToken(tokenPayload.getToken());
@@ -96,7 +90,10 @@ public class LoginEncryptionUtils {
                 GeyserImpl.getInstance().getLogger().warning("Unknown auth payload! Skin uploading will not work");
             }
 
-            PublicKey identityPublicKey = result.identityClaims().parsedIdentityPublicKey();
+            // Cloudburst identityClaims() requires extraData.XUID to be a JSON string. Pre-818
+            // chains often store it as a number or under xuid/xid, which threw and looked like
+            // a missing Xbox login. Parse those fields ourselves.
+            PublicKey identityPublicKey = EncryptionUtils.parseKey(XboxIdentity.identityPublicKey(result));
 
             byte[] clientDataPayload = EncryptionUtils.verifyClientData(jwt, identityPublicKey);
             if (clientDataPayload == null) {
@@ -106,6 +103,24 @@ public class LoginEncryptionUtils {
             BedrockClientData data = JsonUtils.fromJson(clientDataPayload, BedrockClientData.class);
             data.setOriginalString(jwt);
             session.setClientData(data);
+
+            XboxIdentity.Parsed identity = XboxIdentity.parse(result, data);
+            String xuid = identity.xuid();
+            boolean realXuid = XboxIdentity.isRealXuid(xuid);
+            // Token auth (1.21.90+) must still be Mojang-signed. Legacy certificate chains can
+            // carry a real XUID without a 3-JWT Mojang attestation (old title / 1-JWT).
+            boolean legacyChain = authPayload instanceof CertificateChainPayload
+                && authPayload.getAuthType() != AuthType.GUEST
+                && authPayload.getAuthType() != AuthType.FULL;
+            boolean xboxOk = result.signed() || (legacyChain && realXuid);
+            if (!xboxOk && !allowOfflineXbox && session.getGeyser().config().advanced().bedrock().validateBedrockLogin()) {
+                session.disconnect(GeyserLocale.getLocaleStringLog("geyser.network.remote.invalid_xbox_account"));
+                return;
+            }
+            if (!realXuid) {
+                xuid = "0";
+            }
+            geyser.getLogger().debug("Xbox identity signed=%s legacyChain=%s xuid=%s", result.signed(), legacyChain, xuid);
 
             // A proxy re-signs the chain with its own key, so the two only line up for a direct client.
             // Every other transport binds the chain through the encryption handshake below instead.
@@ -119,15 +134,6 @@ public class LoginEncryptionUtils {
                 }
             }
 
-            IdentityData extraData = result.identityClaims().extraData;
-            String xuid = extraData.xuid;
-            boolean missingXbox = guest || !result.signed()
-                || xuid == null || xuid.isBlank() || "0".equals(xuid);
-            if (missingXbox && allowOfflineXbox) {
-                xuid = "0";
-            } else if (xuid == null || xuid.isBlank()) {
-                xuid = "0";
-            }
             if (geyser.config().advanced().bedrock().useWaterdogpeForwarding()) {
                 String waterdogIp = data.getWaterdogIp();
                 String waterdogXuid = data.getWaterdogXuid();
@@ -146,7 +152,7 @@ public class LoginEncryptionUtils {
                     return;
                 }
             }
-            session.setAuthData(new AuthData(extraData.displayName, extraData.identity, xuid, issuedAt, extraData.minecraftId));
+            session.setAuthData(new AuthData(identity.displayName(), identity.identity(), xuid, issuedAt, identity.minecraftId()));
 
             // Thanks 26.44, we love protocol bumps without protocol version bumps
             CodecProcessor.updateCodec(session.getUpstream(), data.getGameVersion());

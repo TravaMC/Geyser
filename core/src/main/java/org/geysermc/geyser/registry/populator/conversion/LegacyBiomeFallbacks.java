@@ -58,7 +58,9 @@ public final class LegacyBiomeFallbacks {
     }
 
     /**
-     * Filter the pre-1.21.80 NBT biome list ({@code biome_definitions.dat}).
+     * Filter a pre-1.21.80 NBT biome list.
+     * Callers must first select the authentic dump for the client's protocol era; filtering
+     * names out of a newer dump cannot undo changes to nested tags on existing biomes.
      */
     public static NbtMap filterNbtDefinitions(NbtMap definitions, int protocolVersion) {
         NbtMapBuilder builder = NbtMap.builder();
@@ -81,9 +83,21 @@ public final class LegacyBiomeFallbacks {
             ? biomeIdentifier.substring(biomeIdentifier.indexOf(':') + 1)
             : biomeIdentifier;
         return switch (path) {
+            case "cherry_grove" -> GameProtocol.is1_19_80orHigher(protocolVersion);
             case "pale_garden" -> GameProtocol.is1_21_50orHigher(protocolVersion);
             case "sulfur_caves" -> GameProtocol.is26_10orHigher(protocolVersion);
             default -> true;
         };
+    }
+
+    /**
+     * Chunk biome IDs still come from modern {@code biomes.json}. 1.19.70 has no cherry_grove (192);
+     * sending that id without a definition crashes the client. Meadow is 186 on both dumps.
+     */
+    public static int remapBedrockBiomeId(int bedrockId, int protocolVersion) {
+        if (!GameProtocol.is1_19_80orHigher(protocolVersion) && bedrockId == 192) {
+            return 186;
+        }
+        return bedrockId;
     }
 }

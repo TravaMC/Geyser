@@ -32,6 +32,7 @@ import org.geysermc.geyser.entity.properties.type.EnumProperty;
 import org.geysermc.geyser.entity.spawn.EntitySpawnContext;
 import org.geysermc.geyser.inventory.GeyserItemStack;
 import org.geysermc.geyser.item.Items;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.session.cache.tags.ItemTag;
 import org.geysermc.geyser.util.InteractionResult;
 import org.geysermc.geyser.util.InteractiveTag;
@@ -75,8 +76,21 @@ public class CopperGolemEntity extends GolemEntity {
         OXIDIZED
     }
 
+    /**
+     * Java copper golem is ~0.98 blocks tall; Bedrock iron golem (pre-1.21.110 stand-in) is 2.7.
+     */
+    private static final float LEGACY_IRON_GOLEM_SCALE = 0.98f / 2.7f;
+
     public CopperGolemEntity(EntitySpawnContext context) {
         super(context);
+    }
+
+    @Override
+    protected void initializeMetadata() {
+        super.initializeMetadata();
+        if (!GameProtocol.is1_21_110orHigher(session.protocolVersion())) {
+            setScale(LEGACY_IRON_GOLEM_SCALE);
+        }
     }
 
     @Override

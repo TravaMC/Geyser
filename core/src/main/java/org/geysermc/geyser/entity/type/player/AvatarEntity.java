@@ -31,8 +31,6 @@ import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.math.vector.Vector3i;
-import org.cloudburstmc.protocol.bedrock.data.Ability;
-import org.cloudburstmc.protocol.bedrock.data.AbilityLayer;
 import org.cloudburstmc.protocol.bedrock.data.GameType;
 import org.cloudburstmc.protocol.bedrock.data.PlayerPermission;
 import org.cloudburstmc.protocol.bedrock.data.command.CommandPermission;
@@ -45,6 +43,7 @@ import org.geysermc.geyser.api.skin.SkinData;
 import org.geysermc.geyser.entity.spawn.EntitySpawnContext;
 import org.geysermc.geyser.entity.type.LivingEntity;
 import org.geysermc.geyser.level.block.Blocks;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.skin.SkinManager;
 import org.geysermc.geyser.skin.SkinProvider;
@@ -58,8 +57,6 @@ import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.type.Boolea
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.type.ByteEntityMetadata;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.ResolvableProfile;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,7 +64,6 @@ import org.jetbrains.annotations.ApiStatus;
 
 public abstract class AvatarEntity extends LivingEntity {
     public static final float SNEAKING_POSE_HEIGHT = 1.5f;
-    protected static final List<AbilityLayer> BASE_ABILITY_LAYER;
 
     @Getter
     protected String username;
@@ -83,15 +79,6 @@ public abstract class AvatarEntity extends LivingEntity {
     @Getter
     @Nullable
     protected Vector3i bedPosition;
-
-    static {
-        AbilityLayer abilityLayer = new AbilityLayer();
-        abilityLayer.setLayerType(AbilityLayer.Type.BASE);
-        Ability[] abilities = Ability.values();
-        Collections.addAll(abilityLayer.getAbilitiesSet(), abilities); // Apparently all the abilities you're working with
-        Collections.addAll(abilityLayer.getAbilityValues(), abilities); // Apparently all the abilities the player can work with
-        BASE_ABILITY_LAYER = Collections.singletonList(abilityLayer);
-    }
 
     public AvatarEntity(EntitySpawnContext context, String username) {
         super(context);
@@ -122,7 +109,7 @@ public abstract class AvatarEntity extends LivingEntity {
         addPlayerPacket.setDeviceId("");
         addPlayerPacket.setPlatformChatId("");
         addPlayerPacket.setGameType(GameType.SURVIVAL); //TODO
-        addPlayerPacket.setAbilityLayers(BASE_ABILITY_LAYER); // Recommended to be added since 1.19.10, but only needed here for permissions viewing
+        addPlayerPacket.setAbilityLayers(GameProtocol.baseAbilityLayers(session.protocolVersion())); // Recommended to be added since 1.19.10, but only needed here for permissions viewing
         addPlayerPacket.getMetadata().putFlags(flags);
         metadata.apply(addPlayerPacket.getMetadata());
 

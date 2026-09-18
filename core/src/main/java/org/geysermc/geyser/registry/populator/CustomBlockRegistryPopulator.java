@@ -56,6 +56,7 @@ import org.geysermc.geyser.level.block.GeyserCustomBlockState;
 import org.geysermc.geyser.level.block.type.Block;
 import org.geysermc.geyser.level.physics.BoundingBox;
 import org.geysermc.geyser.level.physics.PistonBehavior;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.registry.BlockRegistries;
 import org.geysermc.geyser.registry.mappings.MappingsConfigReader;
 import org.geysermc.geyser.registry.mappings.MappingsType;
@@ -327,14 +328,15 @@ public class CustomBlockRegistryPopulator {
      * Generates and returns the block property data for the provided custom block
      *
      * @param customBlock the custom block to generate block property data for
+     * @param protocolVersion the Bedrock protocol receiving the definition
      * @return the block property data for the provided custom block
      */
     @SuppressWarnings("unchecked")
-    static BlockPropertyData generateBlockPropertyData(CustomBlockData customBlock) {
+    static BlockPropertyData generateBlockPropertyData(CustomBlockData customBlock, int protocolVersion) {
         List<NbtMap> permutations = new ArrayList<>();
         for (CustomBlockPermutation permutation : customBlock.permutations()) {
             permutations.add(NbtMap.builder()
-                    .putCompound("components", CustomBlockRegistryPopulator.convertComponents(permutation.components()))
+                    .putCompound("components", CustomBlockRegistryPopulator.convertComponents(permutation.components(), protocolVersion))
                     .putString("condition", permutation.condition())
                     .build());
         }
@@ -357,7 +359,7 @@ public class CustomBlockRegistryPopulator {
         CreativeCategory creativeCategory = customBlock.creativeCategory() != null ? customBlock.creativeCategory() : CreativeCategory.NONE;
         String creativeGroup = customBlock.creativeGroup() != null ? customBlock.creativeGroup() : "";
         NbtMapBuilder propertyTag = NbtMap.builder()
-                .putCompound("components", CustomBlockRegistryPopulator.convertComponents(customBlock.components()))
+                .putCompound("components", CustomBlockRegistryPopulator.convertComponents(customBlock.components(), protocolVersion))
                 // this is required or the client will crash
                 // in the future, this can be used to replace items in the creative inventory
                 // this would require us to map https://wiki.bedrock.dev/documentation/creative-categories.html#for-blocks programatically
@@ -369,10 +371,15 @@ public class CustomBlockRegistryPopulator {
                 // meaning of this version is unknown, but it's required for tags to work and should probably be checked periodically
                 .putInt("molangVersion", 1)
                 .putList("permutations", NbtType.COMPOUND, permutations)
-                .putList("properties", NbtType.COMPOUND, properties)
-                .putCompound("vanilla_block_data", NbtMap.builder()
+                .putList("properties", NbtType.COMPOUND, properties);
+
+        // block_id was added to custom definitions in 1.20.60. Older clients expect no
+        // vanilla_block_data compound in this StartGame entry.
+        if (GameProtocol.is1_20_60orHigher(protocolVersion)) {
+            propertyTag.putCompound("vanilla_block_data", NbtMap.builder()
                     .putInt("block_id", BLOCK_ID.getAndIncrement())
                     .build());
+        }
 
         return new BlockPropertyData(customBlock.identifier(), propertyTag.build());
     }
@@ -381,9 +388,11 @@ public class CustomBlockRegistryPopulator {
      * Converts the provided custom block components to an {@link NbtMap} to be sent to the client in the StartGame packet
      *
      * @param components the custom block components to convert
+     * @param protocolVersion the Bedrock protocol receiving the component data
      * @return the NBT representation of the provided custom block components
      */
-    private static NbtMap convertComponents(CustomBlockComponents components) {
+    @SuppressWarnings("deprecation")
+    private static NbtMap convertComponents(CustomBlockComponents components, int protocolVersion) {
         if (components == null) {
             return NbtMap.EMPTY;
         }
@@ -402,18 +411,22 @@ public class CustomBlockRegistryPopulator {
 
         Set<BoxComponent> collisionBoxes = components.collisionBoxes();
         if (!collisionBoxes.isEmpty()) {
-            builder.putCompound("minecraft:collision_box", convertCollisionBoxes(components.collisionBoxes()));
+            builder.putCompound("minecraft:collision_box", convertCollisionBoxes(collisionBoxes, protocolVersion));
         }
 
         GeometryComponent geometryComponent = components.geometry();
         if (geometryComponent != null) {
             NbtMapBuilder geometryBuilder = NbtMap.builder();
-            geometryBuilder.putString("identifier", geometryComponent.identifier());
-            Map<String, String> boneVisibility = geometryComponent.boneVisibility();
-            if (boneVisibility != null) {
-                NbtMapBuilder boneVisibilityBuilder = NbtMap.builder();
-                boneVisibility.forEach(boneVisibilityBuilder::putString);
-                geometryBuilder.putCompound("bone_visibility", boneVisibilityBuilder.build());
+            if (GameProtocol.is1_20_10orHigher(protocolVersion)) {
+                geometryBuilder.putString("identifier", geometryComponent.identifier());
+                Map<String, String> boneVisibility = geometryComponent.boneVisibility();
+                if (boneVisibility != null) {
+                    NbtMapBuilder boneVisibilityBuilder = NbtMap.builder();
+                    boneVisibility.forEach(boneVisibilityBuilder::putString);
+                    geometryBuilder.putCompound("bone_visibility", boneVisibilityBuilder.build());
+                }
+            } else {
+                geometryBuilder.putString("value", geometryComponent.identifier());
             }
             builder.putCompound("minecraft:geometry", geometryBuilder.build());
         }
@@ -422,19 +435,27 @@ public class CustomBlockRegistryPopulator {
             NbtMapBuilder materialsBuilder = NbtMap.builder();
             for (Map.Entry<String, MaterialInstance> entry : components.materialInstances().entrySet()) {
                 MaterialInstance materialInstance = entry.getValue();
-                NbtMapBuilder materialBuilder = NbtMap.builder()
-                        // Bedrock stopped accepting a byte here in 1.26.20; it must be a float
-                        .putFloat("ambient_occlusion", materialInstance.ambientOcclusionExponent())
-                        .putBoolean("isotropic", materialInstance.isotropic());
+                NbtMapBuilder materialBuilder = NbtMap.builder();
+                if (GameProtocol.is26_20orHigher(protocolVersion)) {
+                    materialBuilder.putFloat("ambient_occlusion", materialInstance.ambientOcclusionExponent());
+                } else {
+                    materialBuilder.putBoolean("ambient_occlusion", materialInstance.ambientOcclusion());
+                }
 
-                // todo this is actually an bitset, we should add the other properties some day
-                materialBuilder.putBoolean("packed_bools", materialInstance.faceDimming());
+                if (GameProtocol.is1_21_110orHigher(protocolVersion)) {
+                    // TODO this is actually a bitset; add the other properties when exposed.
+                    materialBuilder
+                        .putBoolean("isotropic", materialInstance.isotropic())
+                        .putBoolean("packed_bools", materialInstance.faceDimming());
+                } else {
+                    materialBuilder.putBoolean("face_dimming", materialInstance.faceDimming());
+                }
 
                 if (materialInstance.renderMethod() != null) {
                     materialBuilder.putString("render_method", materialInstance.renderMethod());
                 }
 
-                if (materialInstance.tintMethod() != null) {
+                if (GameProtocol.is1_21_124orHigher(protocolVersion) && materialInstance.tintMethod() != null) {
                     materialBuilder.putString("tint_method", materialInstance.tintMethod());
                 }
 
@@ -526,7 +547,11 @@ public class CustomBlockRegistryPopulator {
      * @param boxes the box component to convert
      * @return the NBT representation of the provided box component
      */
-    private static NbtMap convertCollisionBoxes(Set<BoxComponent> boxes) {
+    private static NbtMap convertCollisionBoxes(Set<BoxComponent> boxes, int protocolVersion) {
+        if (!GameProtocol.is1_21_130orHigher(protocolVersion)) {
+            return convertLegacyCollisionBoxes(boxes);
+        }
+
         List<NbtMap> boxesNbt = new ArrayList<>();
         boolean empty = true;
         for (BoxComponent boxComponent : boxes) {
@@ -552,6 +577,44 @@ public class CustomBlockRegistryPopulator {
         return NbtMap.builder()
             .putBoolean("enabled", !empty)
             .putList("boxes", NbtType.COMPOUND, boxesNbt)
+            .build();
+    }
+
+    /**
+     * Protocols before 1.21.130 only accept one origin/size collision box. Collapse multiple
+     * modern boxes to their bounding box rather than sending the later {@code boxes} list.
+     */
+    private static NbtMap convertLegacyCollisionBoxes(Set<BoxComponent> boxes) {
+        float minX = Float.POSITIVE_INFINITY;
+        float minY = Float.POSITIVE_INFINITY;
+        float minZ = Float.POSITIVE_INFINITY;
+        float maxX = Float.NEGATIVE_INFINITY;
+        float maxY = Float.NEGATIVE_INFINITY;
+        float maxZ = Float.NEGATIVE_INFINITY;
+
+        for (BoxComponent box : boxes) {
+            if (box.isEmpty()) {
+                continue;
+            }
+            minX = Math.min(minX, box.originX());
+            minY = Math.min(minY, box.originY());
+            minZ = Math.min(minZ, box.originZ());
+            maxX = Math.max(maxX, box.originX() + box.sizeX());
+            maxY = Math.max(maxY, box.originY() + box.sizeY());
+            maxZ = Math.max(maxZ, box.originZ() + box.sizeZ());
+        }
+
+        if (minX == Float.POSITIVE_INFINITY) {
+            return NbtMap.builder()
+                .putBoolean("enabled", false)
+                .putList("origin", NbtType.FLOAT, 0f, 0f, 0f)
+                .putList("size", NbtType.FLOAT, 0f, 0f, 0f)
+                .build();
+        }
+        return NbtMap.builder()
+            .putBoolean("enabled", true)
+            .putList("origin", NbtType.FLOAT, minX, minY, minZ)
+            .putList("size", NbtType.FLOAT, maxX - minX, Math.min(maxY - minY, 16f), maxZ - minZ)
             .build();
     }
 

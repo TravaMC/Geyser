@@ -84,6 +84,11 @@ public class JavaLevelChunkWithLightTranslator extends PacketTranslator<Clientbo
 
     @Override
     public void translate(GeyserSession session, ClientboundLevelChunkWithLightPacket packet) {
+        if (session.deferLegacyJoinChunks()) {
+            session.queueLegacyJoinChunk(packet);
+            return;
+        }
+
         if (session.isSpawned()) {
             ChunkUtils.updateChunkPosition(session, session.getPlayerEntity().position().toInt());
         }
@@ -385,6 +390,7 @@ public class JavaLevelChunkWithLightTranslator extends PacketTranslator<Clientbo
             levelChunkPacket.setData(byteBuf.retainedSlice());
             levelChunkPacket.setDimension(session.getBedrockDimension().bedrockId());
             session.sendUpstreamPacket(levelChunkPacket);
+            session.maybeSendDeferredPlayerSpawn();
         } catch (IOException e) {
             session.getGeyser().getLogger().error("IO error while encoding chunk", e);
             return;

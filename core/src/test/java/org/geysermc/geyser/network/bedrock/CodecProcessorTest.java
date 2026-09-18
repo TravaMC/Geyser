@@ -28,7 +28,12 @@ package org.geysermc.geyser.network.bedrock;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockPacketDefinition;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockPacketSerializer;
+import org.cloudburstmc.protocol.bedrock.codec.v748.Bedrock_v748;
+import org.cloudburstmc.protocol.bedrock.codec.v766.Bedrock_v766;
+import org.cloudburstmc.protocol.bedrock.codec.v776.Bedrock_v776;
+import org.cloudburstmc.protocol.bedrock.codec.v776.serializer.BossEventSerializer_v776;
 import org.cloudburstmc.protocol.bedrock.packet.BedrockPacket;
+import org.cloudburstmc.protocol.bedrock.packet.BossEventPacket;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -77,6 +82,25 @@ public class CodecProcessorTest {
                 checkSerializer(processedCodec, baseCodec, packetClass);
             }
         }
+    }
+
+    @Test
+    public void bossEventSerializerRespectsFilteredTitleBoundary() {
+        Assertions.assertEquals(
+            bossEventSerializer(Bedrock_v748.CODEC).getClass(),
+            bossEventSerializer(Objects.requireNonNull(GameProtocol.getBedrockCodec(748))).getClass());
+        Assertions.assertEquals(
+            bossEventSerializer(Bedrock_v766.CODEC).getClass(),
+            bossEventSerializer(Objects.requireNonNull(GameProtocol.getBedrockCodec(766))).getClass());
+        Assertions.assertNotEquals(
+            BossEventSerializer_v776.class,
+            bossEventSerializer(Objects.requireNonNull(GameProtocol.getBedrockCodec(766))).getClass());
+        Assertions.assertTrue(BossEventSerializer_v776.class.isAssignableFrom(
+            bossEventSerializer(Objects.requireNonNull(GameProtocol.getBedrockCodec(776))).getClass()));
+    }
+
+    private BedrockPacketSerializer<BossEventPacket> bossEventSerializer(BedrockCodec codec) {
+        return codec.getPacketDefinition(BossEventPacket.class).getSerializer();
     }
 
     private <T extends BedrockPacket> void checkSerializer(BedrockCodec processed, BedrockCodec base, Class<T> packetClass) {

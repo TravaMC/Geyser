@@ -26,7 +26,9 @@
 package org.geysermc.geyser.translator.protocol.java.level;
 
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundOpenSignEditorPacket;
+import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.packet.OpenSignPacket;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.translator.protocol.PacketTranslator;
 import org.geysermc.geyser.translator.protocol.Translator;
@@ -36,11 +38,17 @@ public class JavaOpenSignEditorTranslator extends PacketTranslator<ClientboundOp
 
     @Override
     public void translate(GeyserSession session, ClientboundOpenSignEditorPacket packet) {
+        session.getWorldCache().setEditingSignOnFront(packet.isFrontText());
+
+        // OpenSign is new in protocol 582. Cloudburst 575 has no packet definition.
+        BedrockCodec codec = GameProtocol.getBedrockCodec(session.protocolVersion());
+        if (codec == null || codec.getPacketDefinition(OpenSignPacket.class) == null) {
+            return;
+        }
+
         OpenSignPacket openSignPacket = new OpenSignPacket();
         openSignPacket.setPosition(packet.getPosition());
         openSignPacket.setFrontSide(packet.isFrontText());
         session.sendUpstreamPacket(openSignPacket);
-
-        session.getWorldCache().setEditingSignOnFront(packet.isFrontText());
     }
 }

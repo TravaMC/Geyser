@@ -197,6 +197,90 @@ public final class Legacy120Fallbacks {
         return map;
     }
 
+    /**
+     * Fallbacks for Bedrock 1.19.80/1.19.83 (protocol 582): Trails &amp; Tales items
+     * that are not in the vanilla 1.19.80 item palette.
+     */
+    public static Map<Item, Item> forPre589() {
+        Map<Item, Item> map = forPre662();
+        map.put(Items.MUSIC_DISC_RELIC, Items.MUSIC_DISC_WAIT);
+        map.put(Items.PITCHER_PLANT, Items.LILAC);
+        map.put(Items.PITCHER_POD, Items.BEETROOT);
+        map.put(Items.SNIFFER_EGG, Items.SNIFFER_SPAWN_EGG);
+        return map;
+    }
+
+    /**
+     * Fallbacks for Bedrock 1.19.70/1.19.73 (protocol 575): cherry / extra pottery / trims
+     * are not in the 1.19.70 item palette.
+     */
+    public static Map<Item, Item> forPre582() {
+        Map<Item, Item> map = forPre589();
+        map.put(Items.CHERRY_PLANKS, Items.OAK_PLANKS);
+        map.put(Items.CHERRY_SAPLING, Items.OAK_SAPLING);
+        map.put(Items.CHERRY_LOG, Items.OAK_LOG);
+        map.put(Items.STRIPPED_CHERRY_LOG, Items.STRIPPED_OAK_LOG);
+        map.put(Items.STRIPPED_CHERRY_WOOD, Items.STRIPPED_OAK_WOOD);
+        map.put(Items.CHERRY_WOOD, Items.OAK_WOOD);
+        map.put(Items.CHERRY_LEAVES, Items.OAK_LEAVES);
+        map.put(Items.CHERRY_SLAB, Items.OAK_SLAB);
+        map.put(Items.CHERRY_FENCE, Items.OAK_FENCE);
+        map.put(Items.CHERRY_STAIRS, Items.OAK_STAIRS);
+        map.put(Items.CHERRY_BUTTON, Items.OAK_BUTTON);
+        map.put(Items.CHERRY_PRESSURE_PLATE, Items.OAK_PRESSURE_PLATE);
+        map.put(Items.CHERRY_DOOR, Items.OAK_DOOR);
+        map.put(Items.CHERRY_TRAPDOOR, Items.OAK_TRAPDOOR);
+        map.put(Items.CHERRY_FENCE_GATE, Items.OAK_FENCE_GATE);
+        map.put(Items.CHERRY_BOAT, Items.OAK_BOAT);
+        map.put(Items.CHERRY_CHEST_BOAT, Items.OAK_CHEST_BOAT);
+        map.put(Items.CHERRY_SIGN, Items.OAK_SIGN);
+        map.put(Items.CHERRY_HANGING_SIGN, Items.OAK_HANGING_SIGN);
+        map.put(Items.PINK_PETALS, Items.PINK_TULIP);
+        map.put(Items.SUSPICIOUS_GRAVEL, Items.SUSPICIOUS_SAND);
+        map.put(Items.CALIBRATED_SCULK_SENSOR, Items.SCULK_SENSOR);
+
+        map.put(Items.ANGLER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.BLADE_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.BREWER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.BURN_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.DANGER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.EXPLORER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.FLOW_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.FRIEND_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.GUSTER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.HEART_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.HEARTBREAK_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.HOWL_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.MINER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.MOURNER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.PLENTY_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.SCRAPE_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.SHEAF_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.SHELTER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+        map.put(Items.SNORT_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD);
+
+        map.put(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.DUNE_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.COAST_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.WILD_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.WARD_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.EYE_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.VEX_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.TIDE_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.RIB_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.RAISER_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.HOST_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.FLOW_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        map.put(Items.BOLT_ARMOR_TRIM_SMITHING_TEMPLATE, Items.NETHERITE_INGOT);
+        return map;
+    }
+
     public static NbtMap remapBlockPre685(NbtMap tag) {
         // Includes dirt_type / sand_type unflatten for 1.21.0-era palettes.
         tag = Legacy121Fallbacks.remapBlockPre712(tag);
@@ -245,6 +329,21 @@ public final class Legacy120Fallbacks {
         return Conversion594_589.remapBlock(remapBlockPre618(tag));
     }
 
+    /**
+     * Floor remaps for 1.19.80/1.19.83: carpets/corals still meta, pumpkin {@code direction},
+     * sniffer egg / pitcher plants substituted.
+     */
+    public static NbtMap remapBlockPre589(NbtMap tag) {
+        return Conversion589_582.remapBlock(remapBlockPre594(tag));
+    }
+
+    /**
+     * Floor remaps for 1.19.70/1.19.73: unflattened logs/fences, cherry → oak, no calibrated sculk.
+     */
+    public static NbtMap remapBlockPre582(NbtMap tag) {
+        return Conversion582_575.remapBlock(remapBlockPre589(tag));
+    }
+
     public static GeyserMappingItem remapItemPre685(Item item, GeyserMappingItem mapping) {
         mapping = Legacy121Fallbacks.remapItemPre712(item, mapping);
         return Conversion685_671.remapItem(item, mapping);
@@ -288,5 +387,21 @@ public final class Legacy120Fallbacks {
     public static GeyserMappingItem remapItemPre594(Item item, GeyserMappingItem mapping) {
         mapping = remapItemPre618(item, mapping);
         return Conversion594_589.remapItem(item, mapping);
+    }
+
+    /**
+     * Items for 1.19.80/1.19.83: pottery {@code shard}, meta carpets/corals.
+     */
+    public static GeyserMappingItem remapItemPre589(Item item, GeyserMappingItem mapping) {
+        mapping = remapItemPre594(item, mapping);
+        return Conversion589_582.remapItem(item, mapping);
+    }
+
+    /**
+     * Items for 1.19.70/1.19.73: meta logs/fences, cherry → oak, extra pottery → archer shard.
+     */
+    public static GeyserMappingItem remapItemPre582(Item item, GeyserMappingItem mapping) {
+        mapping = remapItemPre589(item, mapping);
+        return Conversion582_575.remapItem(item, mapping);
     }
 }

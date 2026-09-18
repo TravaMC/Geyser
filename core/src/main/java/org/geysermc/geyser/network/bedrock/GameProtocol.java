@@ -34,6 +34,8 @@ import org.cloudburstmc.protocol.bedrock.codec.v2168.Bedrock_v2168;
 import org.cloudburstmc.protocol.bedrock.codec.v2168.Bedrock_v2168_hotfix4;
 import org.cloudburstmc.protocol.bedrock.codec.v2169.Bedrock_v2169;
 import org.cloudburstmc.protocol.bedrock.codec.v2192.Bedrock_v2192;
+import org.cloudburstmc.protocol.bedrock.codec.v575.Bedrock_v575;
+import org.cloudburstmc.protocol.bedrock.codec.v582.Bedrock_v582;
 import org.cloudburstmc.protocol.bedrock.codec.v589.Bedrock_v589;
 import org.cloudburstmc.protocol.bedrock.codec.v594.Bedrock_v594;
 import org.cloudburstmc.protocol.bedrock.codec.v618.Bedrock_v618;
@@ -61,6 +63,8 @@ import org.cloudburstmc.protocol.bedrock.codec.v898.Bedrock_v898;
 import org.cloudburstmc.protocol.bedrock.codec.v924.Bedrock_v924;
 import org.cloudburstmc.protocol.bedrock.codec.v944.Bedrock_v944;
 import org.cloudburstmc.protocol.bedrock.codec.v975.Bedrock_v975;
+import org.cloudburstmc.protocol.bedrock.data.Ability;
+import org.cloudburstmc.protocol.bedrock.data.AbilityLayer;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityFlag;
 import org.cloudburstmc.protocol.bedrock.netty.codec.packet.BedrockPacketCodec;
 import org.geysermc.geyser.api.util.MinecraftVersion;
@@ -118,6 +122,10 @@ public final class GameProtocol {
     static {
         // Strict ordering
         // Legacy Bedrock (pre-26.0): reuse nearest known palettes and remap unavailable content.
+        // 1.19.73 is a 1.19.70 hotfix — same protocol 575 as 1.19.70/1.19.71/1.19.72.
+        register(Bedrock_v575.CODEC, "1.19.70", "1.19.71", "1.19.72", "1.19.73");
+        // 1.19.83 is a 1.19.80 hotfix — same protocol 582 as 1.19.80/1.19.81.
+        register(Bedrock_v582.CODEC, "1.19.80", "1.19.81", "1.19.83");
         register(Bedrock_v589.CODEC, "1.20.0", "1.20.1");
         register(Bedrock_v594.CODEC, "1.20.10", "1.20.15");
         register(Bedrock_v618.CODEC, "1.20.30", "1.20.32");
@@ -210,20 +218,68 @@ public final class GameProtocol {
 
     /* Bedrock convenience methods to gatekeep features and easily remove the check on version removal */
 
+    /**
+     * Bedrock 1.19.80–1.19.83 share protocol 582. Cherry, extra pottery, sniffer entity, TrimData.
+     */
+    public static boolean is1_19_80orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v582.CODEC.getProtocolVersion();
+    }
+
     public static boolean is1_20_0orHigher(int protocolVersion) {
         return protocolVersion >= Bedrock_v589.CODEC.getProtocolVersion();
+    }
+
+    public static boolean is1_20_10orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v594.CODEC.getProtocolVersion();
+    }
+
+    /**
+     * CameraPresets switched from NBT to a preset list in 1.20.30 (618). lastsubm only sends the packet from this version.
+     */
+    public static boolean is1_20_30orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v618.CODEC.getProtocolVersion();
+    }
+
+    /**
+     * Bedrock 1.19.80–1.19.83 share protocol 582. Palettes and StartGame are the 1.19.80 dump.
+     */
+    public static boolean isPre1_20(int protocolVersion) {
+        return protocolVersion < Bedrock_v589.CODEC.getProtocolVersion();
+    }
+
+    public static boolean is1_20_60orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v649.CODEC.getProtocolVersion();
     }
 
     public static boolean is1_20_70orHigher(int protocolVersion) {
         return protocolVersion >= Bedrock_v662.CODEC.getProtocolVersion();
     }
 
+    /**
+     * Bedrock 1.20.80 (671): wolf sound variants as entity properties.
+     */
+    public static boolean is1_20_80orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v671.CODEC.getProtocolVersion();
+    }
+
     public static boolean is1_21_0orHigher(int protocolVersion) {
         return protocolVersion >= Bedrock_v685.CODEC.getProtocolVersion();
     }
 
+    public static boolean is1_21_20orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v712.CODEC.getProtocolVersion();
+    }
+
+    public static boolean is1_21_40orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v748.CODEC.getProtocolVersion();
+    }
+
     public static boolean is1_21_50orHigher(int protocolVersion) {
         return protocolVersion >= Bedrock_v766.CODEC.getProtocolVersion();
+    }
+
+    public static boolean is1_21_60orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v776.CODEC.getProtocolVersion();
     }
 
     /**
@@ -260,6 +316,10 @@ public final class GameProtocol {
 
     public static boolean is1_21_110orHigher(int protocolVersion) {
         return protocolVersion >= Bedrock_v844.CODEC.getProtocolVersion();
+    }
+
+    public static boolean is1_21_124orHigher(int protocolVersion) {
+        return protocolVersion >= Bedrock_v860.CODEC.getProtocolVersion();
     }
 
     public static boolean is1_21_130orHigher(int protocolVersion) {
@@ -322,6 +382,31 @@ public final class GameProtocol {
                 protocolVersion >= Bedrock_v975.CODEC.getProtocolVersion();
             default -> true;
         };
+    }
+
+    /**
+     * Ability bits in UpdateAbilities / AddPlayer. {@link Ability#VERTICAL_FLY_SPEED} is 1.21.60+
+     * (extra float in lastsubm from 776). Putting it in the 582 bitset is extra.
+     */
+    public static boolean isAbilitySupported(Ability ability, int protocolVersion) {
+        return ability != Ability.VERTICAL_FLY_SPEED
+            || protocolVersion >= Bedrock_v776.CODEC.getProtocolVersion();
+    }
+
+    /**
+     * BASE ability layer for AddPlayer. Omits bits the client's codec does not encode.
+     */
+    public static List<AbilityLayer> baseAbilityLayers(int protocolVersion) {
+        AbilityLayer abilityLayer = new AbilityLayer();
+        abilityLayer.setLayerType(AbilityLayer.Type.BASE);
+        for (Ability ability : Ability.values()) {
+            if (!isAbilitySupported(ability, protocolVersion)) {
+                continue;
+            }
+            abilityLayer.getAbilitiesSet().add(ability);
+            abilityLayer.getAbilityValues().add(ability);
+        }
+        return List.of(abilityLayer);
     }
 
     /**

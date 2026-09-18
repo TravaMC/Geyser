@@ -26,12 +26,14 @@
 package org.geysermc.geyser.configuration;
 
 import org.geysermc.geyser.GeyserBootstrap;
+import org.geysermc.geyser.util.JoinDumpFilter;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import org.spongepowered.configurate.transformation.TransformAction;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -189,6 +191,23 @@ public class ConfigMigrations {
                 .build())
             .addVersion(8, ConfigurationTransformation.empty())
             .addVersion(9, ConfigurationTransformation.empty())
+            .addVersion(10, ConfigurationTransformation.builder()
+                .addAction(path("advanced", "dump-join-packets"), (path, value) -> {
+                    if (value.virtual()) {
+                        return null;
+                    }
+                    if (value.isList()) {
+                        return null;
+                    }
+                    Object raw = value.raw();
+                    if (raw instanceof Boolean enabled) {
+                        value.setList(String.class, enabled ? List.of("*") : List.of());
+                    } else if (raw instanceof String spec) {
+                        value.setList(String.class, JoinDumpFilter.tokens(spec));
+                    }
+                    return null;
+                })
+                .build())
         .build();
 
     static TransformAction renameAndMove(String... newPath) {

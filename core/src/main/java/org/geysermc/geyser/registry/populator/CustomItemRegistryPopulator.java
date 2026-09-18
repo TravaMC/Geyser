@@ -58,6 +58,7 @@ import org.geysermc.geyser.item.custom.GeyserCustomItemBedrockOptions;
 import org.geysermc.geyser.item.custom.GeyserCustomItemDefinition;
 import org.geysermc.geyser.item.exception.InvalidItemComponentsException;
 import org.geysermc.geyser.item.type.Item;
+import org.geysermc.geyser.network.bedrock.GameProtocol;
 import org.geysermc.geyser.registry.mappings.BuiltInMappings;
 import org.geysermc.geyser.registry.mappings.MappingsConfigReader;
 import org.geysermc.geyser.registry.mappings.MappingsType;
@@ -165,7 +166,14 @@ public class CustomItemRegistryPopulator {
                                                              int bedrockId, int protocolVersion, boolean firstMappingsPass) throws InvalidItemComponentsException {
         CustomItemContext context = CustomItemContext.createVanillaAndValidateComponents(javaItem, vanillaMapping, customItem, bedrockId, protocolVersion, firstMappingsPass);
 
-        NbtMapBuilder bedrockComponents = createComponentNbt(javaItem.javaKey(), context);
+        NbtMapBuilder bedrockComponents;
+        if (GameProtocol.isPreCreativeInventoryRewrite(protocolVersion)
+                && javaItem == Items.FURNACE_MINECART
+                && customItem.bedrockIdentifier().toString().equals("geysermc:furnace_minecart")) {
+            bedrockComponents = createLegacyFurnaceMinecartNbt(context);
+        } else {
+            bedrockComponents = createComponentNbt(javaItem.javaKey(), context);
+        }
         ItemDefinition itemDefinition = new SimpleItemDefinition(customItem.bedrockIdentifier().toString(), bedrockId, ItemVersion.DATA_DRIVEN, true, bedrockComponents.build());
 
         return new GeyserCustomMappingData(customItem, itemDefinition, bedrockId);
@@ -268,7 +276,7 @@ public class CustomItemRegistryPopulator {
 
         ToolData toolData = context.components().get(DataComponentTypes.TOOL);
         boolean canDestroyInCreative = toolData == null || toolData.isCanDestroyBlocksInCreative();
-        computeCreativeDestroyProperties(canDestroyInCreative, itemProperties, componentBuilder);
+        computeCreativeDestroyProperties(canDestroyInCreative, itemProperties, componentBuilder, context.protocolVersion());
 
         HolderSet repairable = context.components().get(DataComponentTypes.REPAIRABLE);
         if (repairable != null) {
@@ -393,7 +401,7 @@ public class CustomItemRegistryPopulator {
             .orElse(context.definition().components().get(GeyserItemDataComponents.ENTITY_PLACER));
 
         if (entityPlacer != null) {
-            computeEntityPlacerProperties(componentBuilder);
+            computeEntityPlacerProperties(componentBuilder, context.protocolVersion());
         }
 
         // The client only lets an item into furnace fuel slots when it has this component.
@@ -429,6 +437,48 @@ public class CustomItemRegistryPopulator {
         builder.putCompound("components", componentBuilder.build());
 
         return builder;
+    }
+
+    /**
+     * Reproduces the native pre-1.21.60 furnace-minecart component payload. The modern generic
+     * custom-item generator adds components and empty string lists that these clients did not use.
+     */
+    static NbtMapBuilder createLegacyFurnaceMinecartNbt(CustomItemContext context) {
+        NbtMapBuilder itemProperties = NbtMap.builder();
+        NbtMap icon = GameProtocol.is1_20_60orHigher(context.protocolVersion())
+            ? NbtMap.builder()
+                .putCompound("textures", NbtMap.builder()
+                    .putString("default", "minecart_furnace")
+                    .build())
+                .build()
+            : NbtMap.builder()
+                .putString("texture", "minecart_furnace")
+                .build();
+        itemProperties.putCompound("minecraft:icon", icon)
+            .putBoolean("allow_off_hand", true)
+            .putBoolean("hand_equipped", false)
+            .putInt("max_stack_size", 1)
+            .putString("creative_group", "itemGroup.name.minecart")
+            .putInt("creative_category", CreativeCategory.ITEMS.id());
+
+        List<NbtMap> rails = List.of(NbtMap.builder()
+            .putString("tags", "q.any_tag('rail')")
+            .build());
+        NbtMapBuilder components = NbtMap.builder()
+            .putCompound("minecraft:display_name", NbtMap.builder()
+                .putString("value", "item.minecartFurnace.name")
+                .build())
+            .putCompound("minecraft:entity_placer", NbtMap.builder()
+                .putList("dispense_on", NbtType.COMPOUND, rails)
+                .putString("entity", "minecraft:minecart")
+                .putList("use_on", NbtType.COMPOUND, rails)
+                .build())
+            .putCompound("item_properties", itemProperties.build());
+
+        return NbtMap.builder()
+            .putString("name", context.definition().bedrockIdentifier().toString())
+            .putInt("id", context.customItemId())
+            .putCompound("components", components.build());
     }
 
     private static void setupBasicItemInfo(CustomItemContext context, NbtMapBuilder itemProperties, NbtMapBuilder componentBuilder) {
@@ -476,13 +526,25 @@ public class CustomItemRegistryPopulator {
         // This can be missing if a non-vanilla item didn't specify a max stack size, or if a component patch removed the component. In that case vanilla Minecraft defaults to 1
         int stackSize = components.getOrDefault(DataComponentTypes.MAX_STACK_SIZE, 1);
 
+        // Before 26.30, minecraft:wearable overrides this component. Older custom-item
+        // registries carry stack size only in item_properties.
+        boolean sendStackSizeComponent = GameProtocol.is26_30orHigher(context.protocolVersion());
+        if (!sendStackSizeComponent && stackSize > 1
+                && definition instanceof GeyserCustomItemDefinition customDefinition
+                && customDefinition.isOldConvertedItem()
+                && components.get(DataComponentTypes.EQUIPPABLE) != null) {
+            stackSize = 1;
+        }
+
         int bedrockStackSize = Math.min(stackSize, Item.BEDROCK_MAX_STACK_SIZE);
         itemProperties.putInt("max_stack_size", bedrockStackSize);
-        // Also sent as a component, as a byte: without it minecraft:wearable resets the stack size to one,
-        // and the client refuses to move any slot holding more than one of the item
-        componentBuilder.putCompound("minecraft:max_stack_size", NbtMap.builder()
-            .putByte("value", (byte) bedrockStackSize)
-            .build());
+        if (sendStackSizeComponent) {
+            // Also sent as a component, as a byte: without it minecraft:wearable resets the stack size to one,
+            // and the client refuses to move any slot holding more than one of the item
+            componentBuilder.putCompound("minecraft:max_stack_size", NbtMap.builder()
+                .putByte("value", (byte) bedrockStackSize)
+                .build());
+        }
 
         // Ignore durability if the item's predicates requires that it be unbreakable
         if (maxDamage > 0 && !isUnbreakableItem(definition)) {
@@ -521,11 +583,14 @@ public class CustomItemRegistryPopulator {
         itemProperties.putFloat("mining_speed", 1.0F);
     }
 
-    private static void computeCreativeDestroyProperties(boolean canDestroyInCreative, NbtMapBuilder itemProperties, NbtMapBuilder componentBuilder) {
+    private static void computeCreativeDestroyProperties(boolean canDestroyInCreative, NbtMapBuilder itemProperties,
+                                                          NbtMapBuilder componentBuilder, int protocolVersion) {
         itemProperties.putBoolean("can_destroy_in_creative", canDestroyInCreative);
-        componentBuilder.putCompound("minecraft:can_destroy_in_creative", NbtMap.builder()
-            .putBoolean("value", canDestroyInCreative)
-            .build());
+        if (!GameProtocol.isPreCreativeInventoryRewrite(protocolVersion)) {
+            componentBuilder.putCompound("minecraft:can_destroy_in_creative", NbtMap.builder()
+                .putBoolean("value", canDestroyInCreative)
+                .build());
+        }
     }
 
     private static void computeRepairableProperties(NbtMapBuilder componentBuilder) {
@@ -646,14 +711,16 @@ public class CustomItemRegistryPopulator {
             .build());
     }
 
-    private static void computeEntityPlacerProperties(NbtMapBuilder componentBuilder) {
+    private static void computeEntityPlacerProperties(NbtMapBuilder componentBuilder, int protocolVersion) {
         // all items registered that place entities should be given this component to prevent double placement
         // it is okay that the entity here does not match the actual one since we control what entity actually spawns
-        componentBuilder.putCompound("minecraft:entity_placer", NbtMap.builder()
-            .putList("dispense_on", NbtType.STRING)
-            .putString("entity", "minecraft:minecart")
-            .putList("use_on", NbtType.STRING)
-            .build());
+        NbtMapBuilder entityPlacer = NbtMap.builder().putString("entity", "minecraft:minecart");
+        if (!GameProtocol.isPreCreativeInventoryRewrite(protocolVersion)) {
+            entityPlacer
+                .putList("dispense_on", NbtType.STRING)
+                .putList("use_on", NbtType.STRING);
+        }
+        componentBuilder.putCompound("minecraft:entity_placer", entityPlacer.build());
     }
 
     private static void computeThrowableProperties(NbtMapBuilder componentBuilder, GeyserThrowableComponent throwable) {

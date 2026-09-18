@@ -101,7 +101,8 @@ public class JavaPlayerPositionTranslator extends PacketTranslator<ClientboundPl
             Vector3f entityPosition = entity.position();
             session.setUnconfirmedTeleport(new TeleportCache(session, entityPosition, packet.getXRot(), packet.getYRot(), packet.getId()));
 
-            if (session.getServerRenderDistance() > 32 && !session.isEmulatePost1_13Logic()) {
+            if (session.getServerRenderDistance() > 32 && !session.isEmulatePost1_13Logic()
+                    && !session.deferLegacyJoinChunks()) {
                 // See DimensionUtils for an explanation
                 ChunkRadiusUpdatedPacket chunkRadiusUpdatedPacket = new ChunkRadiusUpdatedPacket();
                 chunkRadiusUpdatedPacket.setRadius(session.getServerRenderDistance());

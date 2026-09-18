@@ -38,6 +38,8 @@ public class BedrockRequestChunkRadiusTranslator extends PacketTranslator<Reques
 
     @Override
     public void translate(GeyserSession session, RequestChunkRadiusPacket packet) {
+        // Always ACK with ChunkRadiusUpdated (see GeyserSession#setClientRenderDistance).
+        // 1.19.80/83 never sends SetLocalPlayerAsInitialized without that reply, then Geyser times out.
         session.setClientRenderDistance(packet.getRadius());
 
         if (session.isLoggedIn()) {

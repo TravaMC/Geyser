@@ -48,6 +48,8 @@ import org.cloudburstmc.nbt.NbtUtils;
 import org.cloudburstmc.protocol.bedrock.codec.v1001.Bedrock_v1001;
 import org.cloudburstmc.protocol.bedrock.codec.v2168.Bedrock_v2168;
 import org.cloudburstmc.protocol.bedrock.codec.v2192.Bedrock_v2192;
+import org.cloudburstmc.protocol.bedrock.codec.v575.Bedrock_v575;
+import org.cloudburstmc.protocol.bedrock.codec.v582.Bedrock_v582;
 import org.cloudburstmc.protocol.bedrock.codec.v589.Bedrock_v589;
 import org.cloudburstmc.protocol.bedrock.codec.v594.Bedrock_v594;
 import org.cloudburstmc.protocol.bedrock.codec.v618.Bedrock_v618;
@@ -186,7 +188,9 @@ public class ItemRegistryPopulator {
     }
 
     public static void populate() {
-        List<PaletteVersion> paletteVersions = new ArrayList<>(29);
+        List<PaletteVersion> paletteVersions = new ArrayList<>(30);
+        Map<Item, Item> pre582Fallbacks = Legacy120Fallbacks.forPre582();
+        Map<Item, Item> pre589Fallbacks = Legacy120Fallbacks.forPre589();
         Map<Item, Item> pre622Fallbacks = Legacy120Fallbacks.forPre662();
         Map<Item, Item> pre685Fallbacks = Legacy120Fallbacks.forPre685();
         Map<Item, Item> pre748Fallbacks = Legacy121Fallbacks.forPre748();
@@ -197,6 +201,8 @@ public class ItemRegistryPopulator {
         Map<Item, Item> pre26Fallbacks = Legacy121Fallbacks.forPre26Extras();
         Map<Item, Item> modern26_0Fallbacks = GoldenDandelionConverter.convertItem();
 
+        paletteVersions.add(new PaletteVersion("1_19_70", Bedrock_v575.CODEC.getProtocolVersion(), pre582Fallbacks, Legacy120Fallbacks::remapItemPre582));
+        paletteVersions.add(new PaletteVersion("1_19_80", Bedrock_v582.CODEC.getProtocolVersion(), pre589Fallbacks, Legacy120Fallbacks::remapItemPre589));
         // 1.20.0–1.20.50
         paletteVersions.add(new PaletteVersion("1_20_0", Bedrock_v589.CODEC.getProtocolVersion(), pre622Fallbacks, Legacy120Fallbacks::remapItemPre594));
         paletteVersions.add(new PaletteVersion("1_20_10", Bedrock_v594.CODEC.getProtocolVersion(), pre622Fallbacks, Legacy120Fallbacks::remapItemPre618));
@@ -257,6 +263,8 @@ public class ItemRegistryPopulator {
 
         /* Load item palette */
         for (PaletteVersion palette : paletteVersions) {
+            boolean usesLegacyStartGameItemTable =
+                GameProtocol.isPreCreativeInventoryRewrite(palette.protocolVersion());
             Type paletteEntriesType = new TypeToken<List<PaletteItem>>() { }.getType();
 
             List<PaletteItem> itemEntries;
@@ -302,17 +310,24 @@ public class ItemRegistryPopulator {
 
                 ItemDefinition definition = new SimpleItemDefinition(entry.getName().intern(), id, ItemVersion.from(entry.getVersion()), entry.isComponentBased(), components);
 
-                // Some item on Bedrock Edition have a different stack size, so we're changing that through the component.
-                // This resolve https://github.com/GeyserMC/Geyser/issues/5612 and https://github.com/GeyserMC/Geyser/issues/4905
-                if (definition.getIdentifier().equals("minecraft:cake")) {
-                    definition = new SimpleItemDefinition(entry.getName().intern(), id, ItemVersion.from(entry.getVersion()), true, fromItemDefinitionToDataDriven(definition, 1, null, null, false));
-                } else if (definition.getIdentifier().equals("minecraft:armor_stand")) {
-                    // You have to change the item version to data driven for armor stand else this won't work.
-                    definition = new SimpleItemDefinition(entry.getName().intern(), id, ItemVersion.DATA_DRIVEN, true, fromItemDefinitionToDataDriven(definition, 16, "armor_stand", "item.armor_stand.name", false));
-                } else if (definition.getIdentifier().equals("minecraft:firework_rocket")) {
-                    // For fireworks rocket, we purposely make this item data driven so now bedrock won't do client-sided boosting
-                    // and now we can control fireworks boost ourselves! This resolve https://github.com/GeyserMC/Geyser/issues/5409
-                    definition = new SimpleItemDefinition(entry.getName().intern(), id, ItemVersion.DATA_DRIVEN, true, fromItemDefinitionToDataDriven(definition, 64, "fireworks", "item.fireworks.name", true));
+                // 1.21.60 moved the item registry out of StartGame and sends complete component
+                // definitions in ItemComponentPacket. Older clients only receive custom component
+                // entries there. Marking these vanilla entries as data-driven on those clients
+                // leaves three component-based StartGame definitions without their component NBT
+                // and causes the client to reject the join packet stream.
+                if (!usesLegacyStartGameItemTable) {
+                    // Some items on Bedrock Edition have a different stack size, so change it through the component.
+                    // This resolves https://github.com/GeyserMC/Geyser/issues/5612 and https://github.com/GeyserMC/Geyser/issues/4905
+                    if (definition.getIdentifier().equals("minecraft:cake")) {
+                        definition = new SimpleItemDefinition(entry.getName().intern(), id, ItemVersion.from(entry.getVersion()), true, fromItemDefinitionToDataDriven(definition, 1, null, null, false));
+                    } else if (definition.getIdentifier().equals("minecraft:armor_stand")) {
+                        // You have to change the item version to data driven for armor stand else this won't work.
+                        definition = new SimpleItemDefinition(entry.getName().intern(), id, ItemVersion.DATA_DRIVEN, true, fromItemDefinitionToDataDriven(definition, 16, "armor_stand", "item.armor_stand.name", false));
+                    } else if (definition.getIdentifier().equals("minecraft:firework_rocket")) {
+                        // For fireworks rocket, we purposely make this item data driven so now bedrock won't do client-sided boosting
+                        // and now we can control fireworks boost ourselves! This resolves https://github.com/GeyserMC/Geyser/issues/5409
+                        definition = new SimpleItemDefinition(entry.getName().intern(), id, ItemVersion.DATA_DRIVEN, true, fromItemDefinitionToDataDriven(definition, 64, "fireworks", "item.fireworks.name", true));
+                    }
                 }
 
                 definitions.put(entry.getName(), definition);
@@ -558,7 +573,12 @@ public class ItemRegistryPopulator {
                                             int customProtocolId = nextFreeBedrockId++;
                                             mappingItem = mappingItem.withBedrockData(customProtocolId);
                                             bedrockIdentifier = customBlockData.identifier();
-                                            definition = new SimpleItemDefinition(bedrockIdentifier, customProtocolId, ItemVersion.DATA_DRIVEN, true, NbtMap.EMPTY);
+                                            // Before 1.21.60 this definition is carried by the StartGame item
+                                            // table and has no matching ItemComponent entry. Keep the legacy
+                                            // non-component definition used by the native 1.21.50 implementation.
+                                            definition = usesLegacyStartGameItemTable
+                                                ? new SimpleItemDefinition(bedrockIdentifier, customProtocolId, ItemVersion.NONE, false, null)
+                                                : new SimpleItemDefinition(bedrockIdentifier, customProtocolId, ItemVersion.DATA_DRIVEN, true, NbtMap.EMPTY);
                                             registry.put(customProtocolId, definition);
                                             customBlockItemDefinitions.put(customBlockData, definition);
                                             customIdMappings.put(customProtocolId, bedrockIdentifier);

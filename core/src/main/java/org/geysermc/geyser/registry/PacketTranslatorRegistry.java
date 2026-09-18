@@ -84,7 +84,7 @@ public class PacketTranslatorRegistry<T> extends AbstractMappedRegistry<Class<? 
     }
 
     private <P extends T> void translate0(GeyserSession session, PacketTranslator<P> translator, P packet) {
-        if (session.isClosed()) {
+        if (session.isClosed() || session.getUpstream().isClosed()) {
             return;
         }
 

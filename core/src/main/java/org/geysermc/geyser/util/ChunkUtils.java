@@ -94,6 +94,9 @@ public class ChunkUtils {
     }
 
     public static void updateChunkPosition(GeyserSession session, Vector3i position) {
+        if (session.deferLegacyJoinChunks()) {
+            return;
+        }
         Vector2i chunkPos = session.getLastChunkPosition();
         Vector2i newChunkPos = Vector2i.from(position.getX() >> 4, position.getZ() >> 4);
 

@@ -40,6 +40,18 @@ import java.util.List;
 /**
  * Session-aware Bedrock entity identifier remaps for legacy clients.
  * Aligns with spawn-egg remaps in {@link Legacy120Fallbacks} / {@link Legacy121Fallbacks}.
+ * <p>
+ * Three layers — all required when a mob is newer than the client:
+ * <ol>
+ *     <li>{@link #filterIdentifiers} — strip unknown ids from {@code entity_identifiers.dat}
+ *     (join crash if a later mob is listed).</li>
+ *     <li>{@link #remapDefinition} / {@link #remapIdentifier} — spawn / spawner NBT uses a
+ *     substitute the codec actually has (breeze→blaze, creaking→warden, …).</li>
+ *     <li>Item fallbacks — spawn eggs must remap in the same palette era.</li>
+ * </ol>
+ * Bedrock 1.19.80/1.19.83 already has camel and sniffer (Trails dump). 1.19.70/1.19.73 has camel
+ * but not sniffer. Do not remap camel on 575/582. New-since-1.20.70 ids are gated in
+ * {@link #clientSupportsEntityType}.
  */
 public final class LegacyEntityFallbacks {
 
@@ -70,6 +82,9 @@ public final class LegacyEntityFallbacks {
      * Remaps the Bedrock definition used at spawn for the given client protocol.
      */
     public static BedrockEntityDefinition remapDefinition(EntityTypeDefinition<?> definition, int protocolVersion) {
+        if (definition.type() == null) {
+            return definition.defaultBedrockDefinition();
+        }
         EntityType type = definition.type().mcpl();
         if (type == null) {
             return definition.defaultBedrockDefinition();
@@ -109,6 +124,9 @@ public final class LegacyEntityFallbacks {
         if (type == EntityType.ARMADILLO && !GameProtocol.is1_20_70orHigher(protocolVersion)) {
             return vanilla("pig");
         }
+        if (type == EntityType.SNIFFER && !GameProtocol.is1_19_80orHigher(protocolVersion)) {
+            return vanilla("pig");
+        }
         if (type == EntityType.BREEZE && !GameProtocol.is1_21_0orHigher(protocolVersion)) {
             return vanilla("blaze");
         }
@@ -130,12 +148,14 @@ public final class LegacyEntityFallbacks {
             return vanilla("ghast");
         }
         if (type == EntityType.COPPER_GOLEM && !GameProtocol.is1_21_110orHigher(protocolVersion)) {
+            // Visual scale is applied in CopperGolemEntity (iron golem is ~3× taller).
             return vanilla("iron_golem");
         }
         if ((type == EntityType.NAUTILUS || type == EntityType.ZOMBIE_NAUTILUS)
             && !GameProtocol.is26_0orHigher(protocolVersion)) {
             return vanilla("pufferfish");
         }
+        // camel_husk is 26.0+; camel itself exists on 1.19.80/1.19.83 (582).
         if (type == EntityType.CAMEL_HUSK && !GameProtocol.is26_0orHigher(protocolVersion)) {
             return vanilla("camel");
         }
@@ -168,6 +188,8 @@ public final class LegacyEntityFallbacks {
             case "copper_golem" -> GameProtocol.is1_21_110orHigher(protocolVersion);
             case "nautilus", "zombie_nautilus", "camel_husk", "parched" -> GameProtocol.is26_0orHigher(protocolVersion);
             case "sulfur_cube" -> GameProtocol.is26_10orHigher(protocolVersion);
+            // camel is native on 1.19.70+. sniffer arrives with Trails (1.19.80 / 582).
+            case "sniffer" -> GameProtocol.is1_19_80orHigher(protocolVersion);
             default -> true;
         };
     }
@@ -183,6 +205,10 @@ public final class LegacyEntityFallbacks {
         return switch (pathOf(propertyName)) {
             // Spring to Life (1.21.70): cow/pig/chicken/egg climate variants
             case "climate_variant" -> GameProtocol.is1_21_70orHigher(protocolVersion);
+            // Armored Paws (1.20.80): wolf sound_variant. Sending it on 582 hangs join.
+            case "sound_variant" -> GameProtocol.is1_20_80orHigher(protocolVersion);
+            // Bee nectar as an entity property is not in the 1.19.80 TypeMap.
+            case "has_nectar" -> GameProtocol.is1_20_80orHigher(protocolVersion);
             default -> true;
         };
     }

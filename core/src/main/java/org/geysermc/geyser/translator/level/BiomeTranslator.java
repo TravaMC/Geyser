@@ -44,6 +44,7 @@ import org.geysermc.geyser.level.chunk.bitarray.BitArray;
 import org.geysermc.geyser.level.chunk.bitarray.BitArrayVersion;
 import org.geysermc.geyser.level.chunk.bitarray.SingletonBitArray;
 import org.geysermc.geyser.registry.Registries;
+import org.geysermc.geyser.registry.populator.conversion.LegacyBiomeFallbacks;
 import org.geysermc.geyser.session.GeyserSession;
 
 // Array index formula by https://wiki.vg/Chunk_Format
@@ -71,7 +72,7 @@ public class BiomeTranslator {
         if (bedrockId == null || bedrockId == UNKNOWN_BIOME) {
             return fallbackBiomeId(session.getDimensionType());
         }
-        return bedrockId;
+        return LegacyBiomeFallbacks.remapBedrockBiomeId(bedrockId, session.protocolVersion());
     }
 
     private static int fallbackBiomeId(@Nullable JavaDimension dimension) {

@@ -47,6 +47,8 @@ import org.cloudburstmc.nbt.NbtUtils;
 import org.cloudburstmc.protocol.bedrock.codec.v1001.Bedrock_v1001;
 import org.cloudburstmc.protocol.bedrock.codec.v2168.Bedrock_v2168;
 import org.cloudburstmc.protocol.bedrock.codec.v2192.Bedrock_v2192;
+import org.cloudburstmc.protocol.bedrock.codec.v575.Bedrock_v575;
+import org.cloudburstmc.protocol.bedrock.codec.v582.Bedrock_v582;
 import org.cloudburstmc.protocol.bedrock.codec.v589.Bedrock_v589;
 import org.cloudburstmc.protocol.bedrock.codec.v594.Bedrock_v594;
 import org.cloudburstmc.protocol.bedrock.codec.v618.Bedrock_v618;
@@ -154,6 +156,8 @@ public final class BlockRegistryPopulator {
 
     private static void registerBedrockBlocks() {
         var blockMappers = ImmutableMap.<ObjectIntPair<String>, Remapper>builder()
+                .put(ObjectIntPair.of("1_19_70", Bedrock_v575.CODEC.getProtocolVersion()), Legacy120Fallbacks::remapBlockPre582)
+                .put(ObjectIntPair.of("1_19_80", Bedrock_v582.CODEC.getProtocolVersion()), Legacy120Fallbacks::remapBlockPre589)
                 .put(ObjectIntPair.of("1_20_0", Bedrock_v589.CODEC.getProtocolVersion()), Legacy120Fallbacks::remapBlockPre594)
                 .put(ObjectIntPair.of("1_20_10", Bedrock_v594.CODEC.getProtocolVersion()), Legacy120Fallbacks::remapBlockPre618)
                 .put(ObjectIntPair.of("1_20_30", Bedrock_v618.CODEC.getProtocolVersion()), Legacy120Fallbacks::remapBlockPre622)
@@ -246,7 +250,7 @@ public final class BlockRegistryPopulator {
             if (BlockRegistries.CUSTOM_BLOCKS.get().length != 0) {
                 CustomBlockRegistryPopulator.BLOCK_ID.set(CustomBlockRegistryPopulator.START_OFFSET);
                 for (CustomBlockData customBlock : BlockRegistries.CUSTOM_BLOCKS.get()) {
-                    customBlockProperties.add(CustomBlockRegistryPopulator.generateBlockPropertyData(customBlock));
+                    customBlockProperties.add(CustomBlockRegistryPopulator.generateBlockPropertyData(customBlock, protocolVersion));
                     CustomBlockRegistryPopulator.generateCustomBlockStates(customBlock, customBlockStates, customExtBlockStates);
                 }
                 blockStates.addAll(customBlockStates);

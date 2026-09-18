@@ -108,10 +108,23 @@ public final class Registries {
     public static final PacketTranslatorRegistry<BedrockPacket> BEDROCK_PACKET_TRANSLATORS = PacketTranslatorRegistry.create();
 
     /**
-     * A registry holding a NbtMap of all the known biomes.
-     * Remove once 1.21.80 is lowest supported version - replaced by {@link Registries#BIOMES}
+     * Bedrock 1.21.70 biome NBT. Remove with the other NBT registries once
+     * 1.21.80 is the lowest supported version.
      */
     public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT = SimpleDeferredRegistry.create("bedrock/biome_definitions.dat", RegistryLoaders.NBT);
+
+    /**
+     * Biome NBT changed independently of the packet codec. Supplying a newer dump and merely
+     * deleting unknown biome names is insufficient: existing entries also change their nested
+     * generation tags. Keep the authentic dump for every protocol floor that changed it.
+     */
+    public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT_1_19_70 = SimpleDeferredRegistry.create("bedrock/biome_definitions.1_19_70.dat", RegistryLoaders.NBT);
+    public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT_1_19_80 = SimpleDeferredRegistry.create("bedrock/biome_definitions.1_19_80.dat", RegistryLoaders.NBT);
+    public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT_1_20_70 = SimpleDeferredRegistry.create("bedrock/biome_definitions.1_20_70.dat", RegistryLoaders.NBT);
+    public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT_1_21_20 = SimpleDeferredRegistry.create("bedrock/biome_definitions.1_21_20.dat", RegistryLoaders.NBT);
+    public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT_1_21_40 = SimpleDeferredRegistry.create("bedrock/biome_definitions.1_21_40.dat", RegistryLoaders.NBT);
+    public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT_1_21_50 = SimpleDeferredRegistry.create("bedrock/biome_definitions.1_21_50.dat", RegistryLoaders.NBT);
+    public static final SimpleDeferredRegistry<NbtMap> BIOMES_NBT_PRE_1_21_70 = SimpleDeferredRegistry.create("bedrock/biome_definitions.pre_1_21_70.dat", RegistryLoaders.NBT);
 
     /**
      * A registry holding biome data for all known biomes.
@@ -245,6 +258,13 @@ public final class Registries {
 
         BEDROCK_ENTITY_IDENTIFIERS.load();
         BIOMES_NBT.load();
+        BIOMES_NBT_1_19_70.load();
+        BIOMES_NBT_1_19_80.load();
+        BIOMES_NBT_1_20_70.load();
+        BIOMES_NBT_1_21_20.load();
+        BIOMES_NBT_1_21_40.load();
+        BIOMES_NBT_1_21_50.load();
+        BIOMES_NBT_PRE_1_21_70.load();
         BIOMES.load();
         BIOME_IDENTIFIERS.load();
         BLOCK_ENTITIES.load();
@@ -269,17 +289,26 @@ public final class Registries {
         // potion mixes depend on other registries
         POTION_MIXES.load();
 
-        // Remove unneeded client generation data from NbtMapBuilder
+        BIOMES_NBT.set(stripBiomeGenerationData(BIOMES_NBT.get()));
+        BIOMES_NBT_1_19_70.set(stripBiomeGenerationData(BIOMES_NBT_1_19_70.get()));
+        BIOMES_NBT_1_19_80.set(stripBiomeGenerationData(BIOMES_NBT_1_19_80.get()));
+        BIOMES_NBT_1_20_70.set(stripBiomeGenerationData(BIOMES_NBT_1_20_70.get()));
+        BIOMES_NBT_1_21_20.set(stripBiomeGenerationData(BIOMES_NBT_1_21_20.get()));
+        BIOMES_NBT_1_21_40.set(stripBiomeGenerationData(BIOMES_NBT_1_21_40.get()));
+        BIOMES_NBT_1_21_50.set(stripBiomeGenerationData(BIOMES_NBT_1_21_50.get()));
+        BIOMES_NBT_PRE_1_21_70.set(stripBiomeGenerationData(BIOMES_NBT_PRE_1_21_70.get()));
+    }
+
+    private static NbtMap stripBiomeGenerationData(NbtMap source) {
         NbtMapBuilder biomesNbt = NbtMap.builder();
-        for (Map.Entry<String, Object> entry : BIOMES_NBT.get().entrySet()) {
-            String key = entry.getKey();
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
             NbtMapBuilder value = ((NbtMap) entry.getValue()).toBuilder();
             value.remove("minecraft:consolidated_features");
             value.remove("minecraft:multinoise_generation_rules");
             value.remove("minecraft:surface_material_adjustments");
-            value.remove( "minecraft:surface_parameters");
-            biomesNbt.put(key, value.build());
+            value.remove("minecraft:surface_parameters");
+            biomesNbt.put(entry.getKey(), value.build());
         }
-        BIOMES_NBT.set(biomesNbt.build());
+        return biomesNbt.build();
     }
 }
